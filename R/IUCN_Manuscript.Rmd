@@ -1,0 +1,972 @@
+---
+title: "Low cost conservation: Fisheries gear threats to marine species"
+author: "Tim Cashion & U. Rashid Sumaila"
+date: "`r date()`"
+output: bookdown::html_document2
+bibliography: MyCollection.bib
+always_allow_html: yes
+biblio-style: "apalike"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=F, warning=F)
+ipak <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new.pkg)) 
+    install.packages(new.pkg, dependencies = TRUE)
+  sapply(pkg, require, character.only = TRUE)
+}
+
+
+packages <- c("tidyverse", 
+              # "maptools", 
+              "rgdal",
+              # "sf", 
+              "wesanderson",
+              # "sp",
+              # "raster"
+              "parallel",
+              "bookdown",
+              "knitr"
+              )
+ipak(packages)
+
+dir_data <- "./data"
+dir_spatial <- "./spatial"
+dir_spatial_csvs <- "./spatial/csvs"
+dir_rasters <- "./spatial/spp_rasters"
+dir_output <- "./output"
+dir_figs <- "./figs"
+
+non_min_min <- function(x, na.rm=T){
+  if(na.rm){
+    if(length(x)>2){
+    min_value <- min(x)
+    #max_value <- max(x)
+    x <- x[x!=min_value]
+    #x <- x[x!=max_value]
+    return(min(x))
+  } else {
+    return(min(x))
+  }
+  }
+}
+
+
+```
+
+```{r plot-aes}
+pal <- wes_palette(name = "Zissou1", n=100, type = c("continuous"))
+zissou5 <- wes_palette(name="Zissou1")
+theme_set(theme_classic())
+#GFW Themes
+theme_gfw_paper <-  theme(text = element_text(face="bold", size=12),
+        axis.text.x = element_text(size = 12, colour = "black"),
+        axis.text.y = element_text(size = 12, colour = "black"),
+        axis.line.x = element_line(colour = "black", size = .5),
+        axis.line.y = element_line(colour = "black", size = .5),
+        legend.position = "bottom",
+        axis.title.y = element_text(size = 12, margin=margin(0,15,0,0)),
+        axis.title.x = element_text(size = 12, margin=margin(15,0,0,0)),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        plot.margin = unit(c(1,1,1,1), "cm")
+        )
+
+cont_fill = 'white'#'grey30' #'grey80'
+back_fill =  'white'#'#202A50' #'black' #'#1F2A4F'
+cont_color = 'grey60'#'grey30'
+#color_grad = c( "#414487", "#2A788E", "#22A884", "#7AD151","#FDE725","#FFC04C")
+color_grad = c("#C6DBEF", "#9ECAE1", "#6BAED6","#4292C6" ,"#2171B5", "#084594") #blues
+
+```
+
+```{r data}
+
+#Establish list of marine species (using O'Hara's at present)
+marine_species <- read.csv(file.path(dir_data, "spp_marine_from_api_2018-1.csv"))
+#### Align with threats and narrative text: ####
+species_threats <- read.csv(file.path(dir_data, "species_fishing_threats.csv"), stringsAsFactors = F)
+colnames(species_threats) <- gsub(colnames(species_threats), pattern="result\\.", replacement="")
+risk_codes <- read.csv(file.path(dir_data, "risk_code_lookup.csv"), stringsAsFactors = F)
+species_threats <- species_threats %>% left_join(risk_codes, by=c("category"="code"))
+species_threats <- species_threats %>%
+  dplyr::select(iucn_sid, class_name, scientific_name, code_current, cat_score) %>%
+  unique()
+
+# threatened_status <- c("VU", "CR", "EN")
+# species_threats <- species_threats %>% filter(code_current %in% threatened_status)
+text_threats <- read.csv(file.path(dir_data, "narrative_threats_output.csv")) %>% 
+  rename(iucn_sid=scientific_name)
+text_threats$trawlers <- ifelse(text_threats$bottom_trawl==1|text_threats$pelagic_trawl==1|text_threats$trawl_unspec==1, 1, NA)
+text_threats <- text_threats %>% 
+  gather(key="super_code", value="threat", -iucn_sid) %>% 
+  filter(is.nan(threat)==F) %>% 
+  filter(is.na(threat)==F) %>% 
+  mutate(super_code = gsub(super_code, pattern="_", replacement=" "))
+
+#spp_ids <- species_threats %>% pull(taxonid) %>% unique()
+
+cell_size <- "05"
+
+spat_files <- list.files(file.path(paste(dir_rasters, "_", cell_size, sep="")))
+raster_read <- function(filename){
+  id <- gsub(filename, pattern="iucn_sid_", replacement = "")
+  id <- gsub(id, pattern=".csv", replacement = "")
+  spp_rast <- data.table::fread(file.path(paste(dir_rasters, "_", cell_size, sep=""), filename))
+  if(nrow(spp_rast)>0){
+    spp_rast$iucn_sid <- as.numeric(id)
+    return(spp_rast)
+  }
+}
+spat_list <- parallel::mclapply(spat_files, raster_read)
+spat_list <- bind_rows(spat_list)
+cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_ids.txt"), header=F, col.names = c("cell_id", "lon", "lat"))
+cell_id_area <- data.table::fread(file.path(dir_spatial_csvs, "cell_id_area_05.csv"))
+allocated_gear_catch <- data.table::fread(file.path(dir_data, "AllocatedSuperGearCatch.csv"))
+allocated_gear_catch <-allocated_gear_catch %>% 
+  left_join(cell_ids) %>% 
+  left_join(cell_id_area) %>% 
+  mutate(catch_km2 = mean_catch/water_area)
+allocated_gear_value <- data.table::fread(file.path(dir_data, "AllocatedSuperGearValue.csv"))
+allocated_gear_value <-allocated_gear_value %>% 
+  left_join(cell_ids) %>% 
+  left_join(cell_id_area) %>% 
+  mutate(value_km2 = mean_value/water_area)
+
+spat_data <- spat_list %>% 
+  left_join(cell_ids, by="cell_id") %>%
+  mutate(category = if_else(is.na(rgn_category), global_category, rgn_category)) %>% 
+  left_join(risk_codes %>% dplyr::select(-c(category)), by=c("category"="code"))
+  
+
+gfw_2016 <- data.table::fread(file.path(dir_spatial_csvs, "gfw_2016_01.csv"))
+
+```
+
+```{r map-setup}
+
+#Load it!
+#World <- readOGR(file.path(dir_spatial, "ne_10m_coastline/ne_10m_coastline.shp"))
+World <- readOGR(file.path(dir_spatial, "ne_10m_coastline/ne_10m_land_no_casp.shp"), verbose=FALSE) #Switched to using without Caspian Sea for better visuals.
+
+# fortify.shape <- function(x){
+#   x@data$id <- rownames(x@data)
+#   x.f = fortify(x, region = "id")
+#   x.join <- inner_join(x.f, x@data, by = "id")
+# }
+
+Forty_World<- fortify(World)
+
+base_map <- ggplot() +
+  geom_path(data = Forty_World, aes(x = long,
+                                    y = lat,
+                                    group = group
+  ),
+  color = "black",
+  size = 0.25) +
+  theme_classic() + 
+  labs(list(title = "",
+            x = "Longitude",
+            y = "Latitude")) +
+  scale_fill_gradientn(colours = pal) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  labs(fill="") + 
+  NULL 
+
+
+```
+
+Target Journals: Science, Nature, PNAS, Science Advances, Nature Sustainability, Conservation Biology
+
+Potential collaborators: Daniel Pauly; Casey O'Hara; Ben Halpern
+## Abstract
+Many marine species globally are threatened by fishing pressure and harmful interactions with fisheries. However, the threats they face are particular to the fishing methods used and are not ubiquitous to fisheries. Therefore, the protection these Threatened species likely need is contingent on their threats and not necessarily related to all fisheries. Here, we undertake a novel analysis of Threatened marine species to identify their major fisheries threats by fishing method and overlap this with two spatially explicit databases of fisheries catches and fishing effort by fishing method. 
+
+Keywords: fishing method, IUCN, fishing pressure, conservation
+
+## Introduction
+
+Fishing is a major threat to many marine species globally. However, different fishing gears are heterogeneous in their spatial extent and their impacts on different species. Therefore, treating different fisheries homogenously with regard to their spatial management likely causes unneeded conflict between fisheries and conservation priorities, and may impose too high costs without necessarily achieving their intended conservation benefits. Here, we aim to clarify this through a greater examination of fisheries threats related to specific fishing gears and their spatial overlap with species of conservation concern. 
+
+While fisheries pose obvious conservation concerns for both targeted and incidentally captured species, they also provide livelihoods and food security to millions and billions, respectively [@FAO2018]. Therefore, the goals of fisheries and conservation must be balanced to minimize the costs and maximize the benefits where possible. 
+
+The purpose of this study is to determine the overlap between species threatened by fisheries and fisheries of commercial and livelihood improtance, distinguishing between different gear types that affect species. A major aim is to highlight areas with low-cost trade-offs between fisheries and conservation, and areas of high conservation concern that are also highly important to fisheries where there is competition between fisheries and conservation objectives. 
+
+## Methods
+
+### IUCN data 
+The International Union for Conservation of Nature (IUCN) maintains the IUCN Red List of Threatened Species (hereafter, 'Red List') that documents the population status and threats of species globally. 
+Red List threat status, spatial habitat maps, and a description of threats was gathered from the IUCN API [@IUCN2019]. We accessed spatial species distribution shape files from the Red List for comprehensively assessed groups that include marine organisms [@IUCN2019]. We supplemented this with Bird Life International species distribution files for birds that occur in marine areas [@BirdLifeInternational2018]. 
+
+After extracting the description of the species threats and use and trade information, we tokenized (i.e., separated the text into one word strings) the text extracting standard stop words and searched for single words and bigrams of fishing gears (e.g., 'bottom trawl' or 'longline', see Table S1). 
+
+We converted the spatial habitat maps to raster format at various spatial scales to correspond to existing datasets in fisheries research including a 0.5° by 0.5°, 0.01° by 0.01°, and 10 km^2^ x 10 km^2^ scale. 
+
+### Fisheries data  
+We used the *Sea Around Us* database (v.47) for catches by gear type [@Pauly2015; @Cashion2018a]. *Sea Around Us* data on fisheries catches by gear type were accessed from the *Sea Around Us* database by the first author. This database includes spatially allocated reconstructed fisheries catches by gear type and taxon for all fishing countries and territories of the world. The spatial scale of this dataset is 0.5° by 0.5° and has been used in many global fisheries studies [@Gremillet2018; @Schiller2018]. In addition, we use the linked ex-vessel price database to incorporate the potential lost revenues for fisheries closures in areas of high biological importance [@Tai2017]. 
+
+We also used a fishing effort data that captures a substantial portion of *industrial* fleets, and is available at a finer resolution [@Kroodsma2018a]. This has previously been used to explore the spatial extent of fisheries globally [@Kroodsma2018a; @Amoroso2018]. This allowed a more granular scale of current fishing effort against current biological hotspots of conservation concern. In addition, this dataset has some fishing gear types categorized by their fishing behaviour but with varying levels of specificity when compared to the *Sea Around Us* dataset. 
+
+### Analysis
+
+First we analyzed the major fishing gear threats based on their appearance in the narrative text of the Red List species profiles. We associated these descriptors to their gear types and examined the number of species 'threatened' and weighted threat status by gear type. We used a linearized weighted scoring method to weight the presence of a species by its IUCN status (e.g., 'Vulnerable', 'Endangered', or 'Critically endangered', Table S2) [@OHara2019]. 
+
+We aim to map areas of high fisheries interest and high conservation concern. The areas with high overlap between conservation concern but low fisheries catches and effort could be areas that could be fully protected from these threats for the long term (termed here, 'easy wins'). However, the areas with high overlap of fisheries interest and high conservation concern are where the impacts on species may be greatest both in terms of fisheries threats and the potential benefits for conservation from fisheries closures. 
+
+```{r conceptual-figure, fig.cap="Theoretical basis for competition between fisheries and conservation", dpi=100, fig.width=3, fig.height=3}
+
+#mod size:
+x <- c(seq(-9,9, 1), rep(0,19))
+y <- c(rep(0,19),seq(-9,9, 1))
+group <- c(rep(0,19),rep(1,19))
+
+df <- tibble(x,y, group)
+#V4:
+conceptual_figure <- ggplot(data=df, aes(x=x,y=y, group=group)) +
+  geom_line(alpha=0.5) +
+  theme_classic() + 
+  theme(axis.line=element_blank(),axis.text.x=element_blank(),
+        axis.text.y=element_blank(),axis.ticks=element_blank(),
+        legend.position="none",
+        panel.background=element_blank(),panel.border=element_blank(),panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),plot.background=element_blank()) + 
+  ylab("Fishery") + 
+  xlab("Conservation") + 
+  scale_x_discrete(position = "top") +
+  annotate("text", x = -4, y = -5, label = "Areas of low concern", size=3, color="grey40") + 
+  annotate("text", x = -4, y = 5, label = "Fishery prioritization", size=3, color="grey40") + 
+  annotate("text", x = 5, y = 5, label = "Competition", size=3, color="grey40") + 
+  annotate("text", x = 5, y = -5, label = "Conservation prioritization", size=3, color="grey40") + 
+  annotate("text", x = -4, y = 9, label = "L", size=3, color="grey40") + 
+  annotate("text", x = 4, y = 9, label = "H", size=3, color="grey40") + 
+  annotate("text", x = -9, y = 4, label = "H", size=3, color="grey40") + 
+  annotate("text", x = -9, y = -4, label = "L", size=3, color="grey40") + 
+  geom_vline(xintercept = -8, alpha=0.5) + 
+  geom_hline(yintercept= 8, alpha=0.5) + 
+  NULL
+conceptual_figure
+#ggsave("./figs/conceptual_figure4.png")
+
+```
+
+We use two metrics frequently in our analysis. The first, is the weighted threat score defined as the sum of species present multiplied by their threat category numeric score $\sum_{i=1}^{N_{cell}}s_{i}$ , where $s_{i}$ is the IUCN conservation status for each species $i$ adapted from O'Hara [-@OHara2019]. The second is this score divided by the fisheries revenue from that area (0.5° by 0.5° cell). 
+
+This analysis was conducted in R [@RCoreTeam2017], and used the tidyverse [@Wickham2016], rMarkdown [@Baumer2015], tidytext [@Fay2018]; gridExtra [@Auguie2017]; sf [@Pebesma2019], rgdal [@Pebesma2012], and wesanderson [@Ram2018] packages. All code and outputs is available at www.github.com/timcashion/iucnfishingthreats. 
+
+For more information on our data sources and methods, see the supplemental methods. 
+
+## Results
+
+We find that fishing is a threat to many marine species that are targeted by fisheries as well as incidentally captured (Figure \@ref(fig:fishing-threat)). According to the identified threats, the small scale sector is a threat to more species than both the intentional and uninentional capture by the large-scale sector. Interestingly, most of these impacts are identified to be of low or of an unknown impact with very species having fishing identified as a medium or high impact. 
+
+```{r fishing-threat, fig.cap="Threat to species by level of impact and IUCN fisheries impact category"}
+fishing_threats <- read.csv(file.path(dir_data, "species_fishing_threats.csv"))
+colnames(fishing_threats) <- gsub(colnames(fishing_threats), pattern="result\\.", replacement="")
+fishing_threats$title <- gsub(fishing_threats$title, pattern=" \\[harvest\\]", replacement = "")
+fishing_threats$score_numeric <- gsub(fishing_threats$score, pattern=".*\\: ", replacement="")
+fishing_threats$score_numeric <- as.numeric(fishing_threats$score_numeric)
+fishing_threats$score <- gsub(fishing_threats$score, pattern="\\: .*", replacement="")
+fishing_threats$score[fishing_threats$score=="Past Impact"] <- "No/Negligible Impact"
+fishing_threats$score[fishing_threats$score=="(Not specified)"] <- "Unknown"
+fishing_threats$score[is.na(fishing_threats$score)] <- "Unknown"
+fishing_threats$score <- fct_relevel(fishing_threats$score, c("No/Negligible Impact", "Unknown", "Low Impact", "Medium Impact", "High Impact"))
+fishing_threats_plot <- fishing_threats %>% 
+  filter(code != "5.4") %>% 
+  group_by(title, score) %>% 
+  summarize(Count=n()) %>% 
+  ungroup() %>% 
+  mutate(title = fct_reorder(title, Count)) %>% 
+  ggplot(aes(x=title, y=Count, fill=score)) +
+  scale_fill_manual(values=zissou5) + 
+  geom_col() + 
+  coord_flip() +
+  xlab("Threat") +
+  ylab("Number of species") + 
+  labs(fill="Level of impact") +
+  NULL
+fishing_threats_plot
+```
+
+
+```{r gear-threats, fig.cap="Fishing gear threats by number of species where that gear is mentioned in 'Threats' and 'Use and Trade' text"}
+text_threats <- read.csv(file.path(dir_data, "narrative_threats_output.csv")) %>% rename(iucn_sid=scientific_name)
+text_threats$trawlers <- ifelse(text_threats$bottom_trawl==1|text_threats$pelagic_trawl==1|text_threats$trawl_unspec==1, 1, NA)
+text_threats <- text_threats %>% 
+  gather(key="super_code", value="threat", -iucn_sid) %>% 
+  filter(is.nan(threat)==F) %>% 
+  filter(is.na(threat)==F) %>% 
+  mutate(super_code = gsub(super_code, pattern="_", replacement=" "))
+
+exclude <- "trawlers"
+
+# gear_threats_plot <- text_threats %>% 
+#   filter(!super_code %in% exclude) %>% 
+#   group_by(super_code) %>% 
+#   summarize(Count=sum(threat)) %>% 
+#   ungroup() %>% 
+#   mutate(super_code = fct_reorder(str_to_sentence(super_code), Count)) %>% 
+#   ggplot(aes(x=super_code, y=Count)) +
+#   geom_col() + 
+#   coord_flip() +
+#   xlab("Fishing gear threat") +
+#   ylab("Number of species") + 
+#   NULL
+# gear_threats_plot
+
+iucn_cols <- IUCNpalette::iucn_palette(category="All", exclude=c("NE", "CO")) 
+
+gear_threats_plot <- text_threats %>% 
+  left_join(species_threats, by="iucn_sid") %>% 
+  filter(!super_code %in% exclude) %>% 
+  filter(code_current != "EX") %>% 
+  group_by(super_code, code_current) %>% 
+  summarize(Count=sum(threat)) %>% 
+  ungroup() %>% 
+  group_by(super_code) %>% 
+  mutate(Total=sum(Count)) %>% 
+  ungroup() %>% 
+  mutate(super_code = fct_reorder(str_to_sentence(super_code), Total)) %>% 
+  mutate(code_current = fct_relevel(code_current, c("DD", "LC", "NT", "VU", "EN", "CR", "EX"))) %>% 
+  mutate(code_current = fct_relevel(code_current, rev(c("DD", "LC", "NT", "VU", "EN", "CR", "EX")))) %>% 
+  ggplot(aes(x=super_code, y=Count, fill=code_current)) +
+  geom_col() + 
+  coord_flip() +
+  xlab("Fishing gear threat") +
+  ylab("Number of species") + 
+  labs(fill="IUCN category") + 
+  scale_fill_manual(values = rev(iucn_cols)) +
+  NULL
+gear_threats_plot
+
+```
+
+
+```{r weighted-narrative-threats, fig.cap="Fishing gear threats by weighted threat status score where that gear is mentioned in 'Threats' and 'Use and Trade' text"}
+text_threats <- read.csv(file.path(dir_data, "narrative_threats_output.csv")) %>% rename(iucn_sid=scientific_name)
+text_threats$trawlers <- ifelse(text_threats$bottom_trawl==1|text_threats$pelagic_trawl==1|text_threats$trawl_unspec==1, 1, NA)
+text_threats <- text_threats %>% 
+  gather(key="super_code", value="threat", -iucn_sid) %>% 
+  filter(is.nan(threat)==F) %>% 
+  filter(is.na(threat)==F) %>% 
+  mutate(super_code = gsub(super_code, pattern="_", replacement=" "))
+
+weighted_gear_threats <- left_join(species_threats, text_threats, by="iucn_sid")
+weighted_gear_threats <- weighted_gear_threats %>% 
+  mutate(gear_threat = threat*cat_score) %>% 
+  filter(is.na(super_code)==F)
+  
+weighted_gear_threats_plot <- weighted_gear_threats %>% 
+  group_by(super_code) %>% 
+  summarize(ThreatScore=sum(gear_threat, na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  mutate(ThreatScore=100*(ThreatScore/max(ThreatScore))) %>% 
+  mutate(super_code = fct_reorder(str_to_sentence(super_code), ThreatScore)) %>% 
+  ggplot(aes(x=super_code, y=ThreatScore)) +
+  geom_col() + 
+  coord_flip() +
+  xlab("Fishing gear threat") +
+  ylab("Weighted threat by gear type") + 
+  NULL
+weighted_gear_threats_plot
+```
+
+
+From the gear types we have previously identified we see again that bottom trawl fisheries has the most number of species. However, we see that it dominates the DD, LC, and NT categories while gillnet gears have the most number of species in the Threatened categories (Vulnearble, Endangered, and Critically Endangered). 
+```{r gear-threat-col-chart, fig.cap="Weighted gear threat across current IUCN Red List status and gear types", fig.width=10, fig.height=5}
+weighted_gear_threats <- weighted_gear_threats %>% 
+  mutate(gear_threat = threat*cat_score)
+gears_to_include <- c("Bottom trawl", "Purse seine", "Longline", "Small scale", "Gillnet")
+# iucn_cols <- IUCNpalette::iucn_palette(category="All", exclude=c("NE", "CO")) 
+# 
+# weighted_gear_threats_plot1 <- weighted_gear_threats %>% 
+#   group_by(super_code, code_current) %>% 
+#   summarize(Count=sum(threat, na.rm=TRUE)) %>% 
+#   ungroup() %>% 
+#   mutate(super_code = fct_reorder(str_to_sentence(super_code), Count)) %>% 
+#   mutate(code_current = fct_relevel(code_current, c("DD", "LC", "NT", "VU", "EN", "CR", "EX"))) %>% 
+#   filter(super_code %in% gears_to_include) %>% 
+#   ggplot(aes(x=code_current, y=Count, fill=code_current)) +
+#   geom_col() + 
+#   xlab("Fishing gear threat") +
+#   ylab("Number of sspecies") + 
+#   labs(fill="IUCN Category") + 
+#   facet_wrap(~super_code, nrow=1) + 
+#   theme(strip.background = element_blank(), strip.text = element_text()) +
+#   scale_fill_manual(values = iucn_cols) +
+#   NULL
+# weighted_gear_threats_plot1
+
+weighted_gear_threats_plot2 <- weighted_gear_threats %>% 
+  group_by(super_code, code_current) %>% 
+  summarize(Count=sum(threat, na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  mutate(super_code = fct_reorder(str_to_sentence(super_code), Count)) %>% 
+  mutate(code_current = fct_relevel(code_current, c("DD", "LC", "NT", "VU", "EN", "CR", "EX"))) %>% 
+  filter(super_code %in% gears_to_include) %>% 
+  ggplot(aes(x=super_code, y=Count, fill=super_code)) +
+  geom_col() + 
+  xlab("") +
+  ylab("Number of species") + 
+  labs(fill="Gear type") + 
+  facet_wrap(~code_current, nrow=1) + 
+  theme(strip.background = element_blank(), strip.text = element_text(), axis.text.x=element_blank()) +
+  #theme(strip.background = element_rect(fill=iucn_cols), strip.text = element_text(), axis.text.x=element_blank()) + #Fill by IUCN category is quite complicated. Leaving this for now. 
+  scale_fill_manual(values = zissou5) +
+  scale_y_continuous(expand=c(0,0)) + 
+  NULL
+weighted_gear_threats_plot2
+
+```
+
+We find substantial overlap between fisheries activity (as determined by spatially allocated catches) and the occurrence and threat level of taxa where this fishing gear is a threat. However, we also find many areas where the current fishing effort and catches are low but still likely presenting a threat to species in that area. 
+
+
+```{r gear-maps, fig.width=9, fig.height=20, fig.cap="Bottom trawl: Distribution of catches (A), species occurrence (B), combined threat level (C), and ease of conservation (D) by gear type"}
+
+sau_gear_types <- unique(allocated_gear_catch$super_code)
+iucn_gear_types <- unique(text_threats$super_code)
+gear_types <- iucn_gear_types[grep(iucn_gear_types, pattern=paste(sau_gear_types, collapse="|"))]
+
+gear_types <- "bottom trawl"
+gear <- "bottom trawl"
+
+null_colour <- "white"
+for(gear in gear_types){
+  gear_species <- text_threats %>%
+    filter(super_code==gear) 
+  fishing_dat <- allocated_gear_catch %>% 
+    filter(super_code==gear) %>% 
+    group_by(lon, lat) %>% 
+    summarize(catch_km2 = sum(catch_km2, na.rm=TRUE)) %>% 
+    ungroup()
+  max_catch <- max(fishing_dat$catch_km2)
+  min_catch <- non_min_min(fishing_dat$catch_km2)
+  diff <- log10(max_catch) - log10(min_catch)
+  breaks_gear <- 10^seq(-2, 1, 1)
+  labels_gear <- c("<=0.01", breaks_gear[2:4])
+  breaks_gear <- log10(breaks_gear)
+  fishing_dat <- fishing_dat %>% 
+    mutate(catch_km2 = ifelse(catch_km2<0.01 & catch_km2>0, 0.01, catch_km2),
+           catch_km2 = ifelse(catch_km2>10, 10, catch_km2))
+  #labels_gear <- round(breaks_gear, 1)
+  # labels_gear <-prettyNum(breaks_gear, format="e",digits=3)
+  threat_dat <- spat_data %>% 
+    filter(iucn_sid %in% gear_species$iucn_sid)  %>% 
+    group_by(lon, lat) %>% 
+    summarize(n = sum(presence, na.rm = T),
+              weighted_score = sum(cat_score, na.rm = T)) %>% 
+    ungroup()
+  catch_threat <- left_join(fishing_dat, threat_dat) %>% 
+    mutate(super_code=gear)
+  write_csv(catch_threat, file.path(dir_output, paste(gear, "catch_threat.csv", sep="")))
+  gear_map <- base_map + 
+    geom_tile(data=fishing_dat, 
+              aes(x=lon, y=lat, fill=log10(catch_km2))) +
+    labs(fill="Catch (metric tonnes/km2)", x="Longitude", y="Latitude") +
+    scale_fill_gradientn(colors=pal, 
+                         breaks = breaks_gear,
+                         labels = labels_gear, 
+                         limits=c(min(breaks_gear)-0.001, max(breaks_gear+0.001)),
+                         na.value=null_colour)
+  occurrence_map <- base_map + 
+    geom_tile(data=threat_dat, 
+              aes(x=lon, y=lat, fill=n)) +
+    labs(fill="Species occurrence", x="Longitude", y="Latitude")
+  threat_map <- base_map + 
+    geom_tile(data=threat_dat, 
+              aes(x=lon, y=lat, fill=weighted_score)) +
+    labs(fill="Weighted threat\nscore", x="Longitude", y="Latitude")
+  map_dat <- full_join(fishing_dat, threat_dat) %>% 
+    gather(key="variable", value="value", -lon:-lat) %>% 
+    group_by(variable) %>% 
+    mutate(value = ifelse(is.na(value), 0, value)) %>% 
+    mutate(norm_value = value/max(value),
+           perc_value = percent_rank(value)) %>% 
+    ungroup()
+  easy_conservation <- map_dat %>% 
+    mutate(perc_value = ifelse(variable=="catch_km2", 1-perc_value, perc_value)) %>% 
+    filter(variable!= "n") %>% 
+    group_by(lon, lat) %>% 
+    summarize(synth_measure = mean(perc_value))
+  easy_conservation_map <- base_map +
+    geom_tile(data=easy_conservation, aes(x=lon, y=lat, fill=synth_measure)) +
+    labs(fill="Ease of \nConservation Score",
+              title = "",
+              x = "Longitude",
+              y = "Latitude")
+  
+  map_grid <- cowplot::plot_grid(gear_map, 
+            occurrence_map,
+            threat_map,
+            easy_conservation_map,
+            align = "v", 
+            rel_widths = c(1,1,1,1),
+            ncol = 1
+  )
+  print(map_grid)
+
+}
+
+```
+
+
+Areas in red show areas where a very small loss to fisheries revenue leads to large conservation gains. Conversely, areas in blue show areas where the loss to fisheries is greater in comparison to the 'conservation gains' made. Interestingly, many of the areas with the lowest hanging fruit are in the high seas (Figure \@ref(fig:cost-of-conservation)). 
+
+```{r cost-of-conservation, fig.width=9, fig.height=20, fig.cap="Bottom trawl: Distribution of catches (A), species occurrence (B), combined threat level (C), and ease of conservation (D) by gear type"}
+
+sau_gear_types <- unique(allocated_gear_catch$super_code)
+iucn_gear_types <- unique(text_threats$super_code)
+gear_types <- iucn_gear_types[grep(iucn_gear_types, pattern=paste(sau_gear_types, collapse="|"))]
+gear_types <- gear_types[gear_types!="drifting longlines"]
+# gear_types <- "bottom trawl"
+# gear <- "bottom trawl"
+conservation_plots <- list()
+for(gear in gear_types){
+  gear_species <- text_threats %>%
+    filter(super_code==gear)
+  fishing_value <- allocated_gear_value %>% 
+    filter(super_code==gear) %>% 
+    group_by(lon, lat) %>% 
+    summarize(value_km2 = sum(value_km2, na.rm=TRUE)) %>% 
+    ungroup()
+  fishing_dat <- fishing_value
+  
+  threat_dat <- spat_data %>% 
+    filter(iucn_sid %in% gear_species$iucn_sid)  %>% 
+    group_by(lon, lat) %>% 
+    summarize(n = sum(presence, na.rm = T),
+              weighted_score = sum(cat_score, na.rm = T)) %>% 
+    ungroup()
+  map_dat <- full_join(fishing_value, threat_dat) %>% 
+    mutate(value_km2_per_n = value_km2/n,
+           value_km2_per_weight = value_km2/weighted_score,
+           score_per_dollar = weighted_score/value_km2)
+  map_dat <- map_dat %>% 
+    mutate(score_per_dollar = ifelse(is.na(score_per_dollar),0, score_per_dollar))
+  
+  cost_conservation_plot <- base_map +
+    geom_tile(data=map_dat, aes(x=lon, y=lat, fill=score_per_dollar)) +
+    labs(fill="$ per weighted score",
+         title = "",
+         subtitle = str_to_sentence(gear), 
+           x = "Longitude",
+         y = "Latitude") +
+    scale_fill_gradientn(colors=pal, trans="log10", na.value=null_colour)
+  
+  plot_name <- paste("cost_of_", gear, sep="")
+  plot_name <- gsub(plot_name, pattern=" ", replacement="_")
+  assign(plot_name, cost_conservation_plot)
+  
+  conservation_plots <- append(conservation_plots, assign(plot_name, cost_conservation_plot))
+}
+
+
+#This is failing because of no fishing value information for drifting longlines. 
+# map_grid <- cowplot::plot_grid(plotlist=mget(ls()[grepl(ls(), pattern="cost_of_")]),
+#             align = "v", 
+#             rel_widths = rep(1,7),
+#             ncol = 2)
+
+map_grid <- cowplot::plot_grid(cost_of_bottom_trawl, cost_of_longline, cost_of_purse_seine, cost_of_small_scale,
+            align = "v", 
+            rel_widths = rep(1,4),
+            ncol = 1)
+
+map_grid
+
+
+
+
+```
+
+```{r eval=F}
+
+lseq <- function(from,to,length.out, base=10) {
+  exp(seq(log(from, base=base),log(to, base=base),length.out=length.out))
+}
+
+log_scale <- function(x, len=5, base=10){
+  x <- na.omit(x)
+  log_x <- log(x, base=base)
+  
+  min_x <- floor(non_min_min(x))
+  max_x <- ceiling(max(x))
+  
+  min_log_x <- floor(non_min_min(log_x))
+  max_log_x <- ceiling(max(log_x))
+  
+  
+  scale_unit <- (max(x)-min(x))/(len-1)
+  scale_unit_round <- round(scale_unit)
+  log_scale_unit <- (max_log_x-min_log_x)/(len-1)
+  log_scale_unit_round <- round(log_scale_unit)
+
+  limits <- c(min_log_x, max_log_x)
+  # breaks <- log(seq(non_min_min(x), max(x), scale_unit))
+  breaks <- c(seq(min_log_x, max_log_x, log_scale_unit_round), max_log_x)
+  labels <- base^breaks
+
+  return(list("limits"=limits, 
+              "labels"=labels,
+              "breaks"=breaks))
+  }
+
+scale_vals <- log_scale(map_dat$score_per_dollar)
+
+
+# cost_conservation_plot <- base_map +
+#   geom_tile(data=map_dat, aes(x=lon, y=lat, fill=log10(score_per_dollar))) +
+#   labs(fill="Log(weighted score/$)",
+#        title = "",
+#        x = "Longitude",
+#        y = "Latitude") +
+#   scale_fill_gradientn(colors=pal,
+#                        # , breaks= seq(-20,20,10),
+#                        # limits= c(-20,10),
+#                        # labels=10^seq(-20,20,10)
+#                        na.value=null_col)
+
+cost_conservation_plot <- base_map +
+  geom_tile(data=map_dat, aes(x=lon, y=lat, fill=log10(score_per_dollar))) +
+  labs(fill="Log(weighted score/$)",
+       title = "",
+       x = "Longitude",
+       y = "Latitude") +
+  scale_fill_gradientn(colors=pal,
+                       limits= scale_vals["limits"][[1]],
+                       breaks= scale_vals["breaks"][[1]],
+                       labels= scale_vals["labels"][[1]],
+                       na.value=null_colour) + 
+  theme(legend.position = "right") + 
+  NULL
+
+
+cost_conservation_plot <- base_map +
+  geom_tile(data=map_dat, aes(x=lon, y=lat, fill=score_per_dollar)) +
+  labs(fill="Log(weighted score/$)",
+       title = "",
+       x = "Longitude",
+       y = "Latitude") +
+
+  scale_fill_gradientn(
+  colors=pal,
+                       limits= scale_vals["limits"][[1]],
+                       breaks= scale_vals["breaks"][[1]],
+                       labels= scale_vals["labels"][[1]],
+                       na.value=null_colour) +
+  theme(legend.position = "right") + 
+  NULL
+
+```
+
+
+```{r density-plot, fig.cap="Density distribution of log-scaled weighted score per USD."}
+
+sau_gear_types <- unique(allocated_gear_catch$super_code)
+iucn_gear_types <- unique(text_threats$super_code)
+gear_types <- iucn_gear_types[grep(iucn_gear_types, pattern=paste(sau_gear_types, collapse="|"))]
+
+gear_threats <- spat_data %>% 
+  left_join(text_threats) %>% 
+  group_by(lon, lat, super_code) %>% 
+  summarize(n = sum(presence, na.rm = T),
+            weighted_score = sum(cat_score, na.rm = T)) %>% 
+  ungroup()
+
+density_data <- full_join(allocated_gear_value, gear_threats) %>% 
+  filter(super_code != "other") %>% 
+  filter(super_code %in% gear_types) %>% 
+  mutate(super_code = fct_drop(super_code)) %>% 
+  mutate(value_km2_per_n = value_km2/n,
+         value_km2_per_weight = value_km2/weighted_score,
+         score_per_dollar = weighted_score/value_km2)
+
+
+density_data %>% 
+  ggplot(aes(x=log10(score_per_dollar), fill=str_to_sentence(super_code))) +
+  geom_density(alpha=0.5) +
+  #scale_fill_manual(values=zissou5) +
+  #facet_wrap(~super_code) +
+  labs(fill="Gear type") +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  NULL
+
+
+# density_data %>% 
+#   ggplot(aes(x=log10(value_km2_per_weight), fill=super_code)) +
+#   geom_density(alpha=0.5) +
+#   scale_fill_manual(values=zissou5) +
+#   facet_wrap(~super_code)
+
+#Interpretation of score per dollar. Weighted Score per dollar: hIGH VALUES INDICATE A HIGH Amount aggregate score of species threats, with a relatively low value for fisheries revenues produced from that cell by that gear type. 
+
+```
+
+
+```{r gear-measures-summary}
+sau_gear_types <- unique(allocated_gear_catch$super_code)
+iucn_gear_types <- unique(text_threats$super_code)
+gear_types <- iucn_gear_types[grep(iucn_gear_types, pattern=paste(sau_gear_types, collapse="|"))]
+
+gear_threats <- spat_data %>% 
+  left_join(text_threats) %>% 
+  group_by(lon, lat, super_code) %>% 
+  summarize(n = sum(presence, na.rm = T),
+            weighted_score = sum(cat_score, na.rm = T)) %>% 
+  ungroup()
+
+density_data <- full_join(allocated_gear_value, gear_threats) %>% 
+  filter(super_code != "other") %>% 
+  filter(super_code %in% gear_types) %>% 
+  mutate(super_code = fct_drop(super_code)) %>% 
+  mutate(value_km2_per_n = value_km2/n,
+         value_km2_per_weight = value_km2/weighted_score,
+         score_per_dollar = weighted_score/value_km2)
+
+
+#Summary table
+summary_tab <- density_data %>% 
+  filter(is.na(mean_value)==F & is.na(weighted_score)==F) %>% 
+  group_by(super_code) %>% 
+  mutate(biodiv_risk = weighted_score/n) %>% 
+  summarize(value_km2 = round(mean(value_km2),2),
+            n = round(mean(n),1), 
+            weighted_score = round(mean(weighted_score),2),
+            biodiv_risk = round(mean(biodiv_risk),2)) %>% 
+  mutate(value_km2_per_weight = round(value_km2/weighted_score,2),
+         score_per_dollar_km2 = round(weighted_score/value_km2,3))
+
+#Text values:
+#Mean and median by gear type
+bt_value <- round(summary_tab %>% filter(super_code=="bottom trawl") %>% pull(value_km2),0)
+bt_risk <- summary_tab %>% filter(super_code=="bottom trawl") %>% pull(biodiv_risk)
+bt_n <- summary_tab %>% filter(super_code=="bottom trawl") %>% pull(n)
+bt_score_value <- summary_tab %>% filter(super_code=="bottom trawl") %>% pull(score_per_dollar_km2)
+
+ll_value <- round(summary_tab %>% filter(super_code=="longline") %>% pull(value_km2),0)
+ll_risk <- summary_tab %>% filter(super_code=="longline") %>% pull(biodiv_risk)
+ll_score_value <- summary_tab %>% filter(super_code=="longline") %>% pull(score_per_dollar_km2)
+
+
+summary_tab <- summary_tab %>% 
+  mutate(super_code = str_to_sentence(super_code))
+colnames(summary_tab) <- c("Gear type", "Value/km^2^", "Number of species", "Weighted Threat Score", "Biodiversity Risk Score", "\\$/km^2^ /WTS", "WTS/$/km^2^")
+
+knitr::kable(summary_tab, caption= "Summary measures of fisheries conservation concern and value generated by gear type.")
+
+```
+
+Globally, bottom trawl fisheries bring in fisheries revenues of \$`r toString(bt_value)` per km^2^ [Table \@ref(tab:gear-measures-summary)]. However, they occur in cells with an average of `r toString(bt_n)` species threatened by them, with an average biodiversity risk score of Near Threatened (`r toString(bt_risk)`). However, their generally high value catches make them perform relatively well on the weighted threat score per value score (`r toString(bt_score_value)`). In contrast, longline fisheries generate a low value per area occupied (\$`r toString(ll_value)`) as they occur over a large spatial area. While they operate in areas with a similar biodiversity risk score as bottom trawl fisheries (`r toString(ll_risk)`), they do so with much lower returns meaning they cause higher conservations risk per dollar of fisheries revenue than bottom trawl fisheries (`r toString(ll_score_value)`) Interestingly, small-scale fisheries and their gears perform similarly to bottom trawl fisheries on a weighted score per dollar km^2^ metric. 
+
+
+Here, we present a harmonized view of areas of fisheries concern across gear types (Figure \@ref(fig:harmonized-gear-map-iucn)). Although similar to other expected areas of concern for biodiversity hotspots [@OHara2019] and fisheries pressure [@Pauly2015; @Kroodsma2018a], our analysis normalizes the threat to these species by their specific fishing gear related threats. 
+
+```{r harmonized-gear-map-iucn, fig.cap="Weighted threat harmonized across gear types"}
+files <- list.files(dir_output)[grepl(list.files(dir_output), pattern="catch_threat.csv")]
+files <- file.path(dir_output, files)
+harmonized_list <- lapply(files, data.table::fread)
+harmonized_threats <- bind_rows(harmonized_list)
+harmonized_threats <- harmonized_threats %>% group_by(lon, lat) %>% 
+  summarize(mean_catch=sum(mean_catch, na.rm=TRUE),
+            n=sum(n, na.rm=TRUE),
+            weighted_score=sum(weighted_score, na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  mutate(weighted_score = 100*(weighted_score/max(weighted_score)))
+
+harmonized_map <- base_map + 
+    geom_tile(data=harmonized_threats, 
+              aes(x=lon, y=lat, fill=weighted_score)) +
+    labs(fill="Weighted threat\nscore", x="Longitude", y="Latitude")
+harmonized_map
+
+```
+
+Similar patterns exist at a more refined spatial scale (0.1° by 0.1° instead of 0.5° by 0.5°). However, the gear types identified in the Global Fishing Watch data are different than identified in *Sea Around Us* data and thus can draw interesting examples. 
+
+For instance, drifting longlines are only explicitly identified as a threat to swordfish (*Xiphias gladius*). Therefore the conservation concern for this is minimal even though there is large spatial extent of this gear and overlap with this target species (Figure SXX). However, assuming that drifting longlines are also a threat to many species with only 'longline' listed in their threats, we get a different picture of the overlap between fishing effort and conservation concern. 
+
+```{r gfw-iucn, fig.cap="Fishing effort and weighted threat score for trawlers"}
+gfw_gear_types <- unique(gfw_2016$geartype)
+iucn_gear_types <- unique(text_threats$super_code)
+gear_types <- iucn_gear_types[grep(iucn_gear_types, pattern=paste(gfw_gear_types, collapse="|"))]
+gear_types <- c("trawlers", "longline", "purse seine")
+# gear_types <- "trawlers"
+# gear <- "trawlers"
+for(gear in gear_types){
+  effort_dat <- data.table::fread(file.path(dir_output, paste(gear, "_GFW_effort", ".csv", sep="")))
+  threat_dat  <- data.table::fread(file.path(dir_output, paste(gear, "_IUCN_threat", ".csv", sep="")))
+  breaks_gear <- 10^seq(1,5,1)
+  labels_gear <- as.character(breaks_gear)
+  breaks_gear <- log10(breaks_gear)
+  effort_map <- base_map + 
+    geom_tile(data=effort_dat, 
+              aes(x=lon, y=lat, fill=fishing_hours)) +
+    labs(fill="Fishing effort (log hours)", x="Longitude", y="Latitude") +
+    scale_fill_gradientn(colors = pal, trans="log10", breaks=c(0.1, 10, 1000), labels=c("0.1", "10", "1000")) + 
+    # scale_fill_gradientn(colors = pal, 
+    #                      limits = c(),
+    #                      breaks= c()) + 
+    NULL
+  threat_map <- base_map + 
+    geom_tile(data=threat_dat, 
+              aes(x=lon, y=lat, fill=weighted_score)) +
+    labs(fill="Weighted threat score", x="Longitude", y="Latitude")
+  # map_grid <- gridExtra::grid.arrange(effort_map, threat_map, ncol=1)
+  map_grid <- cowplot::plot_grid(effort_map, threat_map, 
+                                 align="v", rel_widths = c(1,1), ncol=1)
+  print(map_grid)
+  }
+```
+
+If we consider each cell an independently managed grid, we can examine the trade-offs required in each based on their fisheries revenue value and conservation value (Figure \@ref(fig:conceptual-figure-gears)). We find that although bottom trawl fisheries operate in many cells of conservation concern (high 'Weighted threat score' values), they are also generating substantial fisheries revenue from these fisheries. Gillnets, alternatively, have a large group of cells that are below the median value for fisheries revenue and have high weighted threat scores. Pelagic trawls have fairly low weighted threat scores overall and thus the reduction in their use may not lead to large conservation gains. 
+
+```{r conceptual-figure-gears, fig.cap="Fisheries revenue and weighted score by cell (0.5 by 0.5 grid) for major gear types. Grey dashed lines indicate the median value across gear types for fisheries revenue per km^2^ and weighted threat score."}
+
+plot_data <- density_data %>% 
+  filter(super_code != "drifting longlines") %>% 
+  mutate(super_code = str_to_sentence(super_code))
+median_wts <- median(plot_data$weighted_score, na.rm=TRUE)
+median_valuekm2 <- median(plot_data$value_km2, na.rm=TRUE)
+
+line_colour <- "grey50"
+plot_data %>% 
+  ggplot(aes(x=value_km2, y=weighted_score, color=super_code)) +
+  geom_point(alpha=0.2) + 
+  scale_x_log10() + 
+  xlab("$/km^2^") +
+  ylab("Weighted threat score") +
+  labs(color="Gear type") + 
+  facet_wrap(~super_code) + 
+  geom_hline(yintercept = median_wts, lty="dashed", color=line_colour) + 
+  geom_vline(xintercept = median_valuekm2, lty="dashed", color=line_colour) +
+  theme(strip.background = element_blank()) + 
+  NULL
+
+
+```
+
+
+### EEZ Analysis 
+- Where is the placement of each EEZ's average score on the conceptual figure? 
+We aggregated our spatial results to the EEZs they belong to highlight areas of concern and opportunity under different jurisdictional support. These results highlight areas of conservation concern and areas where there is competition between fisheries and conservation aims (Figure \@ref(fig:eez-level-threats)). 
+
+Although the opposite of an EEZ, the High Seas (treated as one single unit) is in the area of low concern in terms of fisheries and conservation concern. 
+
+```{r eez-level-threats, fig.cap="Mean weighted score and mean catch aggregated by EEZ. Dashed lines indicate median values for the log of mean catch and mean weighted score by EEZ."}
+cell_size <- "05"
+dir_spatial <- "./spatial"
+eez_cell_ids <- read_csv(file.path(dir_spatial_csvs, paste("eez_cell_ids_", cell_size, ".csv", sep="")))
+eez_ids <- read.csv(file.path(dir_spatial_csvs, "eez_ids.csv")) %>% 
+  rename(eez_id = EEZID, eez = Name, entity=Entity) %>% 
+  dplyr::select(eez_id, eez, entity)
+
+eez_ids <- eez_ids %>% 
+  mutate(eez = gsub(eez, pattern="ô", replacement="o"),
+         entity = gsub(entity, pattern="ô", replacement="o"),
+         eez = gsub(eez, pattern="é", replacement="e"),
+         entity = gsub(entity, pattern="é", replacement="e"))
+
+
+cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_ids.txt"), header=F, col.names = c("cell_id", "lon", "lat"))
+cell_ids <- cell_ids %>% left_join(eez_cell_ids) %>% left_join(eez_ids)
+
+cell_ids <- cell_ids %>% 
+  mutate(eez = ifelse(is.na(eez), "High seas", eez),
+         entity = ifelse(is.na(entity), "High seas", entity))
+
+harmonized_threats <- bind_rows(harmonized_list)
+harmonized_threats <- harmonized_threats %>% group_by(lon, lat) %>% 
+  summarize(mean_catch=sum(mean_catch, na.rm=TRUE),
+            n=sum(n, na.rm=TRUE),
+            weighted_score=sum(weighted_score, na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  mutate(weighted_score = 100*(weighted_score/max(weighted_score)))
+
+harmonized_threats <- harmonized_threats %>% left_join(cell_ids)
+
+eez_threats <- harmonized_threats %>% 
+  group_by(eez, entity) %>% 
+  summarize(mean_n=mean(n),
+            mean_weighted_score=mean(weighted_score),
+            mean_catch=mean(mean_catch),
+            sd_n = sd(n),
+            sd_weighted_score = sd(weighted_score),
+            sd_catch = sd(mean_catch)) %>% 
+  ungroup() %>% 
+  mutate(ws_quintile = percent_rank(mean_weighted_score),
+         mc_quintile = percent_rank(mean_catch))
+
+# eez_threats <- eez_threats %>% 
+#   gather(key="variable", value="value", -eez)
+
+eezs_of_interest <- c("High seas", "Indonesia")
+entities_of_interest <- c("High seas", "Indonesia", "Peru", "China", "Cambodia", "Thailand", "Georgia", "Italy", "Malta", "Greece", "Costa Rica", "Australia")
+eez_threats <- eez_threats %>% 
+  mutate(LabelEEZ= ifelse(eez %in% eezs_of_interest, 1, 0),
+         LabelEntity= ifelse(entity %in% entities_of_interest, 1, 0))
+
+text_color <- "grey10"
+text_size <- 4
+ggplot(data=eez_threats, aes(x=mean_weighted_score, y=log10(mean_catch))) +
+  geom_point(alpha=0.0) +
+  #geom_smooth() + 
+  geom_hline(yintercept= median(log10(eez_threats$mean_catch)), lty="dashed") + 
+  geom_vline(xintercept= median(eez_threats$mean_weighted_score), lty="dashed") +
+  geom_text(label=if_else(eez_threats$LabelEntity>0, as.character(eez_threats$eez),""), nudge_x = 0.25, nudge_y = 0.2, color="grey50") +
+  #geom_text(label=eez_threats$entity, nudge_x = 0.25, nudge_y = 0.2, size=2) +
+  annotate("text", y = 1, x = 70, label = "Easy wins", size=text_size, color=text_color) + 
+  annotate("text", y = 9, x = 70, label = "Fishery competition", size=text_size, color=text_color) + 
+  annotate("text", y = 9, x = 8, label = "Fishery prioritization", size=text_size, color=text_color) + 
+  annotate("text", y = 1, x = 8, label = "Areas of low concern", size=text_size, color=text_color) + 
+  # scale_x_continuous(expand=c(0,0)) +
+  # scale_y_continuous(expand=c(0,0)) +
+  xlab("Mean weighted threat score") +
+  ylab("Log(Mean Catch)") + 
+  NULL
+
+```
+
+```{r other-eez-figs, eval=F}
+
+ggplot(data=eez_threats, aes(x=log10(mean_catch), y=weighted_score)) +
+  geom_point() +
+  geom_smooth(method="lm") + 
+  geom_text(label=if_else(eez_threats$LabelEntity>0, as.character(eez_threats$entity),""), 
+            nudge_x = 0.25, nudge_y = 0.2)
+eez_threats %>% 
+  ggplot(aes(x=ws_quintile, y=mc_quintile, color=n)) +
+  geom_point() +
+  geom_vline(xintercept = 0.5, lty="dashed") + 
+  geom_hline(yintercept = 0.5, lty="dashed") +
+  geom_smooth(method="lm")
+
+summary(lm(ws_quintile ~ mc_quintile, data=eez_threats))
+
+
+summary(lm(weighted_score ~ log10(mean_catch), data=eez_threats))
+```
+
+
+## Discussion
+
+While [@OHara2019] highlighted the areas for future conservation protection for MPAs, we identify the areas that would also meet with major or lesser fisheries overlap and thus competition. In these areas, we assume the placement of MPAs would be more contentious due to the reliance on these natural resources. 
+
+The High Seas is rated as being of low conservation concern and fisheries catches. This is unsurprisingly in line with previous studies using similar data sources [@Schiller2018]. While there are likely benefits to coastal fisheries from closing the high seas [@Sumaila2015a; @White2014], the conservation benefit as measured here is likely low. 
+
+Our study may underestimate the impact of some fishing gears based on the descriptions of threats and use for each IUCN species. However, this is unlikely to be biased towards particular fishing methods as the threats generally highlight all known (fisheries) threats. In addition, as Data Deficient (DD) species are given a risk score of 0, we likely underestimate the risk to these species. 
+
+It is important to caveat our study knowing that we cannot fully account for the current extent of human's usage of the oceans, and this study has focused on fisheries and mainly large-scale fisheries. Small-scale fisheries are critical to coastal livelihoods across the world, and these must not be compromised by aims to overly broad conservation initiatives. 
+
+## Conclusion
+There is potential for 'easy wins' for conservation where the conservation value is high, and the overlap with fisheries gears of concern is low. These areas may be important areas to prioritize over other areas with equal biodiversity value where fisheries are much more valuable in terms of their contribution to food security and livelihoods. 
+
+## Acknowledgements
+TC acknowledges funding support of the Social Sciences and Humanities Research Council of Canada and the 4-Year fellowship from the University of British Columbia. 
+
+
+## References

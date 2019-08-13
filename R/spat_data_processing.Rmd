@@ -1,0 +1,382 @@
+---
+title: "SpatialDataProcessing"
+author: "Tim"
+date: "June 26, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+source(here::here("R", "common_fxns.R"))
+#Packages
+packages <- c("tidyverse", 
+              "maptools", 
+              "rgdal", 
+              "sf", 
+              "wesanderson",
+              "sp",
+              "raster")
+ipak(packages)
+
+#ipak("parallelsugar")
+```
+
+Process spatial data downloaded from IUCN into clean raster format aligned with 0.5 by 0.5 degree spatial grid. 
+
+```{r}
+
+cell_size="05"
+
+cell_size="01"
+reload <- FALSE
+
+```
+
+Create cell_id raster for fasterize function. 
+```{r raster-files}
+dir_raster <- "../spatial/rasters"
+dir_spatial <- "../spatial"
+dir_spatial_csvs <- "../spatial/csvs"
+dir_data <- "../data"
+#Establish list of marine species 
+marine_species <- read.csv(file.path(dir_data, "spp_marine_from_version_2019-2.csv"))
+
+spp_ids <- marine_species %>% pull(iucn_sid) %>% unique()
+
+
+crs_string <- "+init=epsg:4326"
+##Create raster from SAU cell coords:
+if(reload==TRUE){
+  if(cell_size=="05"){
+    cell_ids <- read.csv(file.path(dir_spatial_csvs,"cell_ids_05.txt"), header=F, col.names = c("cell_id", "x", "y"))
+  } else if(cell_size=="01"){
+    cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_ids_01.txt"), header=T, col.names = c("cell_id", "x", "y"))
+  }
+  coordinates(cell_ids) <- ~x+y
+  proj4string(cell_ids) <- CRS(crs_string) # set it to lat-long
+  cell_ids <- spTransform(cell_ids,CRS(crs_string))
+  gridded(cell_ids) <- TRUE
+  cell_ids_rast <- raster(cell_ids)
+  projection(cell_ids_rast) <- CRS(crs_string)
+  writeRaster(cell_ids_rast, paste(dir_raster, "/cell_ids_" , as.character(cell_size), "_rast.tif", sep=""), overwrite=TRUE)
+  #Re-align rasters of bathymetry data with SAU
+  rast_bathy <- raster(file.path(dir_raster,
+                                   'bathy_rast.tif'))
+  rast_bathy2 <-projectRaster(rast_bathy, cell_ids_rast, method="bilinear")
+  writeRaster(rast_bathy2, file.path(dir_raster, paste("bathy_rast_modified_",cell_size,".tif", sep="")), overwrite=TRUE)
+  
+  rast_neritic <- raster(file.path(dir_raster,
+                                   'bathy_rast_neritic.tif'))
+  rast_neritic2 <-projectRaster(rast_neritic, cell_ids_rast, method="bilinear")
+  writeRaster(rast_neritic2, file.path(dir_raster, paste("bathy_rast_neritic_modified_",cell_size,".tif", sep="")), overwrite=TRUE)
+  
+  rast_shallow <- raster(file.path(dir_raster,
+                                   'bathy_rast_shallow.tif'))
+  rast_shallow2 <-projectRaster(rast_shallow, cell_ids_rast, method="bilinear")
+  writeRaster(rast_shallow2, file.path(dir_raster, paste("bathy_rast_shallow_modified_",cell_size,".tif", sep="")), overwrite=TRUE)
+  
+  rast_meow <- raster(file.path(dir_raster,
+                                'meow_rast.tif'))
+  rast_meow2 <-projectRaster(rast_meow, cell_ids_rast, method="bilinear")
+  writeRaster(rast_meow2, file.path(dir_raster, paste("meow_rast_modified_",cell_size,".tif", sep="")), overwrite=TRUE)
+  }
+#Load rasters in
+cell_ids_rast <- raster(paste(dir_raster, "/cell_ids_" , as.character(cell_size), "_rast.tif", sep=""))
+rast_bathy <- raster(file.path(dir_raster,
+                                 paste("bathy_rast_modified_",cell_size,".tif", sep="")))
+rast_neritic <- raster(file.path(dir_raster,
+                                 paste("bathy_rast_neritic_modified_",cell_size,".tif", sep="")))
+rast_shallow <- raster(file.path(dir_raster, 
+                                 paste("bathy_rast_shallow_modified_",cell_size,".tif", sep="")))
+#Set raster projections to all be the same
+proj4string(cell_ids_rast) <- CRS(crs_string)
+proj4string(rast_bathy) <- CRS(crs_string) 
+proj4string(rast_neritic) <- CRS(crs_string) 
+proj4string(rast_shallow) <- CRS(crs_string) 
+
+```
+
+
+```{r water-area-cells}
+cell_id_area <- area(cell_ids_rast) %>% 
+  mask(rast_bathy)
+plot(cell_id_area)
+x <- tibble(cell_id = values(cell_ids_rast),
+        water_area = values(cell_id_area))
+write_csv(x,file.path(dir_spatial_csvs, paste('cell_id_area_', cell_size, ".csv", sep="")))
+
+```
+
+```{r meow-cell-ids}
+rast_meow <- raster(file.path(dir_raster, paste("meow_rast_modified_",cell_size,".tif", sep="")))
+cell_ids_rast <- raster(paste(dir_raster, "/cell_ids_" , as.character(cell_size), "_rast.tif", sep=""))
+meow_tibble <- tibble(cell_id  = values(cell_ids_rast),
+                      meow_id = values(rast_meow))
+write_csv(meow_tibble, file.path(dir_spatial_csvs, paste("meow_cell_ids_",cell_size,".csv", sep="")))
+
+
+```
+
+
+```{r rasterize-iucn}
+shp_files <- list.files(file.path(dir_spatial, "SpatialIUCNData"))[grepl(list.files(file.path(dir_spatial, "SpatialIUCNData")), pattern=".shp")]
+shp_files <- shp_files[!grepl(shp_files, pattern=".xml")]
+shps_list <- list()
+i <- 0
+
+#shp_files <- shp_files[c(8)] # Limit to just fishes to test.
+
+file <- shp_files[1]
+for (file in shp_files) {
+  i <- i+1
+  name <- tolower(gsub(file, pattern="\\.shp", replacement=""))
+  cat_msg("Starting", name, ' (group ', i, ' of ', length(shp_files), ')...\n')
+  shp_data <- st_read(file.path("../spatial/SpatialIUCNData", file))
+  shp_data <- shp_data %>% 
+    filter(id_no %in% marine_species$iucn_sid) # Filter out non-marine species right away (There shouldn't be too many filtered out)
+  start <- Sys.time()
+  spp_ids <- shp_data %>% pull(id_no) %>% unique()
+  depth_info <- marine_species %>% filter(iucn_sid %in% spp_ids)
+  shp_data <- shp_data %>% left_join(depth_info, by=c("id_no"="iucn_sid"))
+  if(reload == FALSE) {
+  maps_already_rasterized <- list.files(file.path(dir_spatial, paste('spp_rasters_', cell_size, sep="")),
+                                        pattern = '.csv') %>%
+    str_replace_all('iucn_sid_|.csv$', '') %>%
+    as.integer()
+
+  spp_ids <- shp_data %>%
+    filter(!id_no %in% maps_already_rasterized) %>% 
+    pull(id_no)
+  }
+  tmp <- parallel::mclapply(seq_along(spp_ids),
+                            #mc.cores =  2,
+                            FUN = function(x) {
+                              spp <- spp_ids[x]
+
+                              cat_msg(x, ' of ', length(spp_ids), ': Processing ', spp, ' in ', name,
+                                      ' (group ', i, ' of ', length(shp_files), ')...\n')
+                              spp_shp <- shp_data %>%
+                                filter(id_no == spp)
+                              if(nrow(spp_shp)>0){
+                                
+                                spp_shp <- valid_check(spp_shp)
+                                ### if invalid geom, and bounds exceeded, buffer to 0
+                                spp_shp <- spp_shp %>%
+                                  clip_to_globe() %>%
+                                  ### indiv files should have adjusted boundaries already; only
+                                  ### files from Spatial Data Download should run into this
+                                  st_transform(crs_string)
+                                
+                                
+                                #Need to set up my own raster version of the cell_id coords.
+                                spp_rast <- fasterize::fasterize(spp_shp, cell_ids_rast, field = 'presence', fun = 'min')
+                                
+                                ### depth clip if necessary; otherwise clip to bathy raster (which previously
+                                ### was clipped to area raster - so cells with any marine area will be kept,
+                                ### and non-marine cells will be dropped)
+                                if(spp_shp$max_depth == '< 20 m') {
+                                  spp_rast <- mask(spp_rast, rast_shallow)
+                                } else if(spp_shp$max_depth == '< 200 m') {
+                                  spp_rast <- mask(spp_rast, rast_neritic)
+                                } else {
+                                  spp_rast <- mask(spp_rast, rast_bathy)
+                                }
+                                
+                                ### convert to dataframe and write out as a csv:
+                                spp_present <- data.frame(cell_id  = values(cell_ids_rast),
+                                                          presence = values(spp_rast)) %>%
+                                  filter(!is.na(presence))
+                                
+                                if(nrow(spp_present) == 0) {
+                                  cat_msg('Species ID ', spp, ' resulted in a zero-length dataframe.')
+                                } else{
+                                  write_csv(spp_present, file.path(dir_spatial, paste('spp_rasters_', cell_size, sep=""),
+                                                                   sprintf('iucn_sid_%s.csv', spp)))
+                                }
+                                
+                                
+                              }else {
+                                cat_msg('Species ID ', spp, ' had no shp file to process.')
+                              }
+                              
+                              return(NA)
+                            }) ### end of mclapply FUN definition
+  # }) ### end of system.time call
+  end <- Sys.time()
+  end-start
+  rm(shp_data)
+}
+
+
+```
+
+
+```{r birdlife-international}
+
+
+fgdb <- "../spatial/BOTW.gdb"
+
+shp_data_raw <- st_read(dsn=fgdb, layer="All_Species")
+shp_data <- shp_data_raw
+#birds <- marine_species %>% filter(iucn_sid %in% shp_data$SISID)
+shp_data <- shp_data %>% 
+  rename(id_no = SISID)
+shp_data <- shp_data %>% 
+  filter(id_no %in% marine_species$iucn_sid) # Filter out non-marine species right away (There shouldn't be too many filtered out)
+
+start <- Sys.time()
+spp_ids <- shp_data %>% pull(id_no) %>% unique()
+depth_info <- marine_species %>% filter(iucn_sid %in% spp_ids)
+shp_data <- shp_data %>% left_join(depth_info, by=c("id_no"="iucn_sid"))
+if(reload == FALSE) {
+  maps_already_rasterized <- list.files(file.path(dir_spatial, paste('spp_rasters_', cell_size, sep="")),
+                                        pattern = '.csv') %>%
+    str_replace_all('iucn_sid_|.csv$', '') %>%
+    as.integer()
+  
+  spp_ids <- shp_data %>%
+    filter(!id_no %in% maps_already_rasterized) %>% 
+    pull(id_no)
+}
+tmp <- parallel::mclapply(seq_along(spp_ids),
+                          #mc.cores =  2,
+                          FUN = function(x) {
+                            spp <- spp_ids[x]
+                            
+                            cat_msg(x, ' of ', length(spp_ids))
+                            spp_shp <- shp_data %>%
+                              filter(id_no == spp)
+                            if(nrow(spp_shp)>0){
+                              
+                              spp_shp <- valid_check(spp_shp)
+                              ### if invalid geom, and bounds exceeded, buffer to 0
+                              spp_shp <- spp_shp %>%
+                                clip_to_globe() %>%
+                                ### indiv files should have adjusted boundaries already; only
+                                ### files from Spatial Data Download should run into this
+                                st_transform(crs_string)
+                              
+                              
+                              #Need to set up my own raster version of the cell_id coords.
+                              spp_rast <- fasterize::fasterize(spp_shp, cell_ids_rast, field = 'PRESENCE', fun = 'min')
+                              
+                              ### depth clip if necessary; otherwise clip to bathy raster (which previously
+                              ### was clipped to area raster - so cells with any marine area will be kept,
+                              ### and non-marine cells will be dropped)
+                              if(spp_shp$max_depth == '< 20 m') {
+                                spp_rast <- mask(spp_rast, rast_shallow)
+                              } else if(spp_shp$max_depth == '< 200 m') {
+                                spp_rast <- mask(spp_rast, rast_neritic)
+                              } else {
+                                spp_rast <- mask(spp_rast, rast_bathy)
+                              }
+                              
+                              ### convert to dataframe and write out as a csv:
+                              spp_present <- data.frame(cell_id  = values(cell_ids_rast),
+                                                        presence = values(spp_rast)) %>%
+                                filter(!is.na(presence))
+                              
+                              if(nrow(spp_present) == 0) {
+                                cat_msg('Species ID ', spp, ' resulted in a zero-length dataframe.')
+                              } else{
+                                write_csv(spp_present, file.path(dir_spatial, paste('spp_rasters_', cell_size, sep=""),
+                                                                 sprintf('iucn_sid_%s.csv', spp)))
+                              }
+                              
+                              
+                            }else {
+                              cat_msg('Species ID ', spp, ' had no shp file to process.')
+                            }
+                            
+                            return(NA)
+                          }) ### end of mclapply FUN definition
+# }) ### end of system.time call
+end <- Sys.time()
+end-start
+rm(shp_data)
+
+```
+
+
+
+```{r incorporate-global-and-regional-assessments}
+version <- "version_2019-2"
+dir_data <- "../data"
+#Read global threat list
+iucn_global_assessments <- data.table::fread(file.path(dir_data, paste("iucn_species_list_" , version ,".csv", sep="")))
+
+# Establish list of species with regional assessment values AND shape files processed already: 
+rgn_assessments <- read.csv(file.path(dir_data, "marine_regional_assessments.csv"))
+spp_shps <- gsub(list.files(file.path(dir_spatial, paste("spp_rasters_", cell_size, sep=""))), pattern=".csv", replacement="")
+spp_shps <- gsub(spp_shps, pattern="iucn_sid_", replacement="")
+rgn_species_ids <- rgn_assessments %>% pull(result.taxonid) %>% unique()
+rgn_species_ids <- rgn_species_ids[rgn_species_ids %in% as.numeric(spp_shps)]
+
+#Set up which cell ids are within which MEOWs based on cell_size resolution chosen
+iucn_rgn_to_meow <- read_csv(file.path(dir_spatial_csvs, "iucn_rgn_to_meow.csv"))
+meow_cell_ids <- read_csv(file.path(dir_spatial_csvs, paste("meow_cell_ids_", cell_size, ".csv", sep="")))
+
+multi_regional_assessments <- list()
+#Process through each assigning a global_Category score and regional assessment score
+region_category <- function(species, cell_size){
+  species_name <- iucn_global_assessments %>% filter(result.taxonid == species) %>%  pull(result.scientific_name)
+  
+  spp_shp <- data.table::fread(file.path(dir_spatial, paste("spp_rasters_", cell_size, "/iucn_sid_", species,".csv", sep="")))
+  spp_shp <- spp_shp %>% dplyr::select(cell_id, presence) #Added this in as I was joining more and more regional result columns if I re-run this code. 
+  spp_shp$global_category <- iucn_global_assessments %>% filter(is.na(result.population)) %>% filter(result.taxonid == species) %>%  pull(result.category)
+  rgn_assessment <- rgn_assessments %>% filter(result.taxonid == species)
+  rgn_assessment <- rgn_assessment %>% left_join(iucn_rgn_to_meow, by=c("region_identifier"="iucn_rgn")) %>% left_join(meow_cell_ids, by="meow_id")
+  
+  rgn_assessment <- rgn_assessment %>% 
+    group_by(cell_id) %>% 
+    filter(priority == min(priority)) %>% 
+    dplyr::select(cell_id, result.category) %>% 
+    rename(rgn_category = result.category) %>% 
+    distinct()
+  
+  #If global species has overlapping shape file, remove it from global raster so that we're not double counting. 
+  global_species_id <- iucn_global_assessments %>% filter(result.scientific_name==species_name) %>% filter(is.na(result.population)) %>% pull(result.taxonid)
+  if(species != global_species_id){
+    global_spp_shp <- data.table::fread(file.path(dir_spatial, paste("spp_rasters_", cell_size, "/iucn_sid_", global_species_id,".csv", sep="")))
+    global_spp_shp <- global_spp_shp %>% filter(!cell_id %in% rgn_assessment$cell_id)
+    write_csv(global_spp_shp, file.path(dir_spatial, paste("spp_rasters_", cell_size, "/iucn_sid_", global_species_id,".csv", sep="")))
+    }
+  multi_entries <- rgn_assessment %>% group_by(cell_id) %>% summarize(n=length(unique(rgn_category))) %>% filter(n>1)
+  if(nrow(multi_entries)>0){
+    print(paste("Error for ", species))
+    multi_regional_assessments <- append(multi_regional_assessments, species)
+  }
+  spp_shp <- spp_shp %>% 
+    left_join(rgn_assessment, by="cell_id")
+  write_csv(spp_shp, file.path(dir_spatial, paste("spp_rasters_", cell_size, "/iucn_sid_", species,".csv", sep="")))
+  cat_msg('Species ID ', species, 'processed')
+  return(NA)
+  }
+
+parallel::mclapply(rgn_species_ids, region_category, cell_size=cell_size)
+
+
+#Output will be overwritten version of these spp_raster files with a new column indicating risk category in the cell.
+spp_shps <- gsub(list.files(file.path(dir_spatial, paste("spp_rasters_", cell_size, sep=""))), pattern=".csv", replacement="")
+spp_shps <- gsub(spp_shps, pattern="iucn_sid_", replacement="")
+gbl_species <- spp_shps[!spp_shps %in% rgn_species_ids]
+gbl_species <- gbl_species[gbl_species != "desktop.ini"]
+#Do any species have more than one global assessment associated with their taxonid (They shouldn't)
+0==nrow(iucn_global_assessments %>% group_by(result.taxonid) %>% summarize(n=length(unique(result.category))) %>% filter(n>1))
+
+
+global_category <- function(species, cell_size){
+  spp_shp <- data.table::fread(file.path(dir_spatial, paste("spp_rasters_", cell_size, "/iucn_sid_", species,".csv", sep="")))
+  spp_shp <- spp_shp %>% dplyr::select(cell_id, presence)
+  spp_shp$global_category <- iucn_global_assessments %>% filter(result.taxonid == species) %>%  pull(result.category)
+  spp_shp$rgn_category <- NA
+  write_csv(spp_shp, file.path(dir_spatial, paste("spp_rasters_", cell_size, "/iucn_sid_", species,".csv", sep="")))
+  cat_msg('Species ID ', species, 'processed')
+  return(NA)
+}
+parallel::mclapply(gbl_species, global_category, cell_size=cell_size)
+
+```
+
+

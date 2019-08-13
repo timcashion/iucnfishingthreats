@@ -1,0 +1,67 @@
+---
+title: "Check coverage"
+author: "Tim"
+date: "July 3, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Check coverage of marine species that have any threat ascribed to them and check for accuracy against IUCN website. 
+
+```{r}
+dir_data <- "../data"
+marine_species <- read.csv(file.path(dir_data, "spp_marine_from_api_2018-1.csv"))
+iucn_species <- read.csv(file.path(dir_data, "iucn_species_list.csv")) 
+risk_codes <- read.csv(file.path(dir_data, "risk_code_lookup.csv")) %>% dplyr::select(code, code_current)
+colnames(iucn_species) <- gsub(colnames(iucn_species), pattern="result\\.", replacement="")
+marine_species <- marine_species %>% 
+  left_join(iucn_species, by=c("iucn_sid"="taxonid")) %>% 
+  left_join(risk_codes, by=c("category"="code")) %>% 
+  mutate(category=code_current) %>% 
+  dplyr::select(-code_current)
+#spp_ids <- marine_species %>% pull(iucn_sid) %>% unique()
+
+marine_species %>% 
+  ggplot(aes(x=category)) +
+  geom_bar()
+
+species_threats <- read.csv(file.path(dir_data, "species_threats.csv"))
+species_with_threats <- marine_species %>% filter(scientific_name %in% unique(species_threats$name))
+species_with_threats %>% 
+  ggplot(aes(x=category)) +
+  geom_bar()
+
+species_without_threats <- marine_species %>% 
+  filter(!scientific_name %in% unique(species_threats$name))
+
+species_without_threats %>% 
+  ggplot(aes(x=category)) +
+  geom_bar()
+
+
+```
+After reviewing this, it seems that I should not restrict my analysis to species with fishing as a threat as it depends on the classification. 
+Species of least concern can have threats attributed to them. 
+
+
+
+
+```{r}
+species_fishing_threats <- read.csv(file.path(dir_data, "species_fishing_threats.csv"))
+species_threats_narrative <- read.csv(file.path(dir_data, "species_threats_narrative.csv"))
+narrative_threats_output <- read.csv(file.path(dir_data, "narrative_threats_output.csv"))
+
+```
+
+
+Things to fix in API:
+- some species did not return results from first attempt (e.g., Acanthurus mata)
+
+Spatial API:
+- Incorporate accessing of maps from species not available for download
+- 
+

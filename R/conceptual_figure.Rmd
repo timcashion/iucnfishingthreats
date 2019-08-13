@@ -1,0 +1,41 @@
+---
+title: "Conceptual figure"
+author: "Tim"
+date: "July 15, 2019"
+output: html_document
+---
+
+```{r conceptual-figure, fig.cap="Theoretical basis for competition between fisheries and conservation", dpi=200, fig.width=4, fig.height=4}
+library(tidyverse)
+
+#Create blank frame
+x <- c(seq(-9,9, 1), rep(0,19))
+y <- c(rep(0,19),seq(-9,9, 1))
+group <- c(rep(0,19),rep(1,19))
+df <- tibble(x,y, group)
+
+#Make plot:
+conceptual_figure <- ggplot(data=df, aes(x=x,y=y, group=group)) +
+  geom_line(alpha=0.5) +
+  theme_classic() + 
+  theme(axis.line=element_blank(),axis.text.x=element_blank(),
+        axis.text.y=element_blank(),axis.ticks=element_blank(),
+        legend.position="none",
+        panel.background=element_blank(),panel.border=element_blank(),panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),plot.background=element_blank()) + 
+  ylab("Fishery") + 
+  xlab("Conservation") + 
+  scale_x_discrete(position = "top") +
+  annotate("text", x = -4, y = -5, label = "Areas of low concern", size=3, color="grey40") + 
+  annotate("text", x = -4, y = 5, label = "Fishery prioritization", size=3, color="grey40") + 
+  annotate("text", x = 5, y = 5, label = "Competition", size=3, color="grey40") + 
+  annotate("text", x = 5, y = -5, label = "Conservation prioritization", size=3, color="grey40") + 
+  annotate("text", x = -4, y = 9, label = "L", size=3, color="grey40") + 
+  annotate("text", x = 4, y = 9, label = "H", size=3, color="grey40") + 
+  annotate("text", x = -9, y = 4, label = "H", size=3, color="grey40") + 
+  annotate("text", x = -9, y = -4, label = "L", size=3, color="grey40") + 
+  geom_vline(xintercept = -8, alpha=0.5) + 
+  geom_hline(yintercept= 8, alpha=0.5) + 
+  NULL
+conceptual_figure
+# ggsave("./figs/conceptual_figure.png")

@@ -1,0 +1,131 @@
+---
+title: "gear_price_estimator"
+author: "Tim"
+date: "August 12, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, message=F, warning=F)
+source("../R/common_fxns.R")
+packages <- c("tidyverse")
+ipak(packages)
+dir_data <- "../data"
+```
+
+Objective: To extrapolate from known relationships of gear as a determinant of price to produce multipliers for the FERU ex-vessel price database. 
+
+References:
+
+
+Data Sources:
+UK Fleet Landings - https://www.gov.uk/government/statistical-data-sets/uk-fleet-landings-and-foreign-fleet-landings-into-the-uk-by-port
+Compiled here: https://www.kaggle.com/theflyingmunkey/uk-fleet-landings
+
+
+NMFS - https://www.st.nmfs.noaa.gov/commercial-fisheries/commercial-landings/landings-by-gear/index
+Query information: 'ALL SPECIES INDIVIDUALLY', 2000-2016; All States; ALL GEAR INDIVIDUALLY; DOWNLOAD ASCII FILE - PC
+The query information must be removed from the output file before the file can be loaded into R correctly. 
+
+```{r data}
+nmfs <- read_csv(file.path(dir_data, "MF_GEAR_LANDINGS.txt"))
+colnames(nmfs)[4:6] <- c("Tonnes", "Pounds", "Value")
+nmfs <- nmfs %>% 
+  filter(Pounds >0) %>% 
+  filter(Value > 0) %>% 
+  mutate(Tonnes = Pounds/ 2204.623) %>% 
+  mutate(Price=Value/Tonnes) %>% 
+  mutate(Country="USA")
+
+uk <- data.table::fread(file.path(dir_data, "UK_fleet_landings_cleaned_kaggle.csv"))
+uk <- uk %>% 
+  rename(Year = year, 
+         gear_type = gear_category,
+         Tonnes = live_weight,
+         Value = value_gbp,
+         Species=species) %>%
+  filter(Tonnes >0) %>% 
+  filter(Value > 0) %>% 
+  mutate(Price=Value/Tonnes) %>% 
+  mutate(Country="UK")
+
+nmfs_species_names <- data.table::fread(file.path(dir_data, "US_Common_Names.csv"))
+nmfs_species_names <- nmfs_species_names %>% mutate(Name = str_to_lower(Name))
+asfis <- data.table::fread(file.path(dir_data, "ASFIS_sp_2019.txt")) %>% mutate(English_name = str_to_lower(English_name))
+
+us_gear_table <- read_csv(file.path(dir_data, "US_Gear.csv"))
+uk_gear_table <- read_csv(file.path(dir_data, "UK_Gear.csv"))
+
+```
+
+
+```{r cleaning}
+
+nmfs <- nmfs %>% left_join(us_gear_table)
+nmfs <- nmfs %>% mutate(Species= str_to_lower(Species)) %>% left_join(nmfs_species_names, by=c("Species"="Name"))
+nmfs %>% filter(is.na(SciName)) %>% pull(Species) %>% unique()
+
+
+nmfs <- nmfs %>% mutate(Species = str_to_lower(Species))
+nmfs <- nmfs %>% 
+  mutate(PreNom = gsub(Species, pattern= ".*, ", replacement=""),
+         SurNom = gsub(Species, pattern=", .*", replacement="")) %>% 
+  mutate(CommonName = if_else(PreNom==SurNom, PreNom, paste(PreNom, SurNom)))
+nmfs <- nmfs %>% left_join(asfis, by=c("CommonName"="English_name"))
+nmfs %>%  filter(is.na(Scientific_name)) %>% pull(Species) %>% unique()
+
+nmfs <- nmfs %>% dplyr::select(Year, Species, super_code, Country, Price, Tonnes)
+uk <- uk %>% left_join(uk_gear_table) %>% dplyr::select(Year, Species, super_code, Country, Price, Tonnes)
+
+model_data <- bind_rows(nmfs, uk)
+
+#Set reference case:
+model_data <- model_data %>% 
+  mutate(super_code = fct_relevel(super_code, "bottom trawl", after=0)) %>% 
+  mutate(Species = str_to_lower(Species))
+
+#unique(model_data$Species)
+```
+
+
+```{r modeling}
+mod <- lfe::felm(log(Price) ~ super_code + Species + Year + Country + log(Tonnes),
+                 data=model_data)
+
+plot(model_data$Year, mod$residuals)
+
+```
+
+
+```{r clean-output}
+output_raw <- broom::tidy(mod)
+output_raw <- output_raw %>% 
+  filter(grepl(term, pattern="super_code")) %>% 
+  mutate(term = gsub(term, pattern="super_code", replacement="")) %>% 
+  rename(super_code=term)
+
+missing_gear_types <- gear_table %>% pull(super_code) %>% unique()
+missing_gear_types <- missing_gear_types[!missing_gear_types %in% output_raw$super_code]
+
+missing_cases <- tibble(super_code= missing_gear_types, 
+       estimate=rep(0, length(missing_gear_types)),
+       std.error=rep(0, length(missing_gear_types)),
+       statistic=rep(0, length(missing_gear_types)),
+       p.value=rep(0, length(missing_gear_types)))
+
+output_raw <- output_raw %>% 
+  bind_rows(missing_cases)
+```
+
+
+```{r output}
+output <- output_raw
+output <- output %>% 
+  mutate(multiplier_mean = exp(estimate)) %>% 
+  mutate(multiplier_ll = exp(estimate) - (1.96*std.error),
+         multiplier_ul = exp(estimate) + (1.96*std.error))
+write_csv(output, file.path(dir_data, "gear_price_multipliers.csv"))
+
+```
+

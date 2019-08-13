@@ -1,0 +1,139 @@
+---
+title: "profit estimation"
+author: "Tim"
+date: "August 12, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+#knitr::opts_chunk$set(echo = FALSE, message=F, warning=F)
+source("../R/common_fxns.R")
+packages <- c("tidyverse")
+ipak(packages)
+dir_data <- "../data"
+dir_spatial_csvs <- "../spatial/csvs"
+```
+
+Objective: To determine profits by fishing gear type at a spatial scale. 
+
+Dependencies:
+- Cost of fishing database (Lam et al. 2011)
+- Requires outputs of sau_data_processing.Rmd and gear_price_estimator.Rmd
+
+Steps:
+1) Adjust prices by gear type to derive new price
+2) Estimate revenue by gear type for each for each country
+3) Estimate profit by matching each country's gear type to their cost of fishing
+4) Output clean version of profit by cell_id without country information. 
+
+```{r raw-data}
+sau_df <- data.table::fread(file.path(dir_data, "sau_catch_value_country.csv"))
+gear_price_multiplier <- read_csv(file.path(dir_data, "gear_price_multipliers.csv"))
+cost_of_fishing <- read_csv(file.path(dir_data, "cost_of_fishing_database.csv"))
+fe_ids <- read_csv(file.path(dir_data, "fishing_entity_ids.csv"))
+fao_region_fe_ids <- read_csv(file.path(dir_data, "fao_region_fishing_entity_ids.csv"))
+cell_ids <- read_csv(file.path(dir_spatial_csvs, "cell_ids.txt"), col_names = c("cell_id", "lon", "lat"))
+gear_table <- read_csv(file.path(dir_data, "sau_gear_table.csv"))
+feru_gear_table <- read_csv(file.path(dir_data, "feru_gear_table.csv"))
+```
+
+
+```{r cleaning}
+
+#Clean combined Sea Around Us data
+sau_df <- sau_df %>% 
+  mutate(value = ifelse(value==0, catch*1496, value))
+sau_df <- sau_df %>% 
+  mutate(price = value/catch)
+sau_df <- sau_df %>% left_join(gear_table, by=c("gear_type_id" = "gear_id")) %>% left_join(gear_price_multiplier)
+sau_df <- sau_df %>% 
+  mutate(new_price_mean = price * multiplier_mean,
+         new_price_ll = price * multiplier_ll,
+         new_price_ul = price * multiplier_ul) %>% 
+  mutate(value = new_price_mean * catch)
+
+
+regional_average_gear_costs <- cost_of_fishing %>% 
+  left_join(feru_gear_table) %>% 
+  group_by(FAORegion, super_code) %>% 
+  summarize(AverageCost= mean(`TotCost (US$ per tonne of catch in 2005 real dollar)`)) 
+
+regional_average_costs <- cost_of_fishing %>% 
+  left_join(feru_gear_table) %>% 
+  group_by(FAORegion) %>% 
+  summarize(RegionalAverageCost= mean(`TotCost (US$ per tonne of catch in 2005 real dollar)`)) 
+
+
+
+#Need to add in 'unknown' classes and small scale where it isn't found in the data. 
+
+regional_costs <- expand.grid(FAORegion=unique(regional_average_gear_costs$FAORegion), super_code=c(unique(regional_average_gear_costs$super_code), "unknown"))
+regional_costs <- regional_costs %>% 
+  left_join(regional_average_gear_costs) %>% 
+  left_join(regional_average_costs) %>% 
+  mutate(AverageCost = ifelse(is.na(AverageCost), RegionalAverageCost, AverageCost)) %>% 
+  left_join(fao_region_fe_ids)
+
+
+#Clean cost of fishing database to match SAU data 
+cost_of_fishing <- cost_of_fishing %>% 
+  left_join(feru_gear_table) %>% 
+  dplyr::select(Country, super_code, `TotCost (US$ per tonne of catch in 2005 real dollar)`) %>% 
+  rename(fishing_entity=Country,
+         total_cost = `TotCost (US$ per tonne of catch in 2005 real dollar)`) %>% 
+  left_join(fe_ids) %>% 
+  group_by(fishing_entity_id, super_code) %>% 
+  summarize(total_cost=mean(total_cost))
+
+  
+  
+```
+
+
+```{r modeling}
+df <- sau_df %>% 
+  left_join(cost_of_fishing) %>% 
+  left_join(cell_ids) 
+
+
+#Check missing data:
+# df %>% filter(is.na(value))
+# df %>% filter(is.na(cost)) %>% pull(super_code) %>% unique()
+
+
+df <- df %>% 
+  left_join(regional_costs)
+df <- df %>% 
+  mutate(cost_to_use = if_else(is.na(total_cost), AverageCost, total_cost))
+
+df <- df %>% 
+  mutate(cost = cost_to_use*catch) %>% 
+  mutate(profit = value-cost)
+
+# df %>% filter(is.na(cost))
+# df %>% filter(is.nan(profit))
+
+hist(log(df$profit))
+```
+
+
+```{r clean-output}
+output <- df %>% 
+  group_by(super_code, lon, lat, year) %>%
+  summarize(catch=sum(catch),
+            profit=sum(profit)) %>%
+  ungroup() %>%
+  group_by(super_code, lon, lat) %>%
+  summarize(mean_catch = mean(catch),
+            mean_profit = mean(profit))
+
+```
+
+
+```{r output}
+#output <- output_raw
+write_csv(output, file.path(dir_data, "allocated_super_gear_profit.csv"))
+
+```
+

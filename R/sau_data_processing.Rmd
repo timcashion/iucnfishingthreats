@@ -1,0 +1,260 @@
+---
+title: "SAU_data_processing"
+author: "Tim"
+date: "June 27, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../R/common_fxns.R")
+
+
+packages <- c("tidyverse", 
+              "sf", 
+              "raster",
+              "fasterize")
+ipak(packages)
+
+dir_data <- "../data"
+dir_spatial_csvs <- "../spatial/csvs"
+```
+
+```{r, eval=FALSE}
+####SAU Spatial Data####
+sau_all <- data.table::fread(file.path(dir_data, "sau_catch_value_country.csv"))
+sau_all <- sau_all %>% 
+  mutate(value = ifelse(value==0, catch*1496, value))
+raw_allocated_catch <- sau_all %>% dplyr::select(-value)
+raw_allocated_value <- sau_all %>% dplyr::select(-catch)
+
+#Ran this code below and now only need to intersect with output.
+#raw_allocated_catch <- data.table::fread(file.path(dir_data, "AllocatedCatchIUCNJan312019.csv"))
+#Amended gear table to remove trailing s on gillnets supercode. 
+gear_table <- read_csv(file.path(dir_data, "sau_gear_table.csv")) %>%
+  rename(gear_type_id=gear_id) %>%
+  dplyr::select(-c(name, notes))
+cell_ids <- read_csv(file.path(dir_spatial_csvs, "cell_ids.txt"), col_names = c("cell_id", "lon", "lat"))
+allocated_catch <- raw_allocated_catch %>%
+  left_join(gear_table) %>%
+  left_join(cell_ids)
+allocated_gear_catch <- allocated_catch %>%
+  group_by(super_code, lon, lat, year) %>%
+  summarize(catch=sum(catch)) %>%
+  ungroup() %>%
+  group_by(super_code, lon, lat) %>%
+  summarize(mean_catch = mean(catch))
+write_csv(allocated_gear_catch, file.path(dir_data, "allocated_super_gear_catch.csv"))
+
+
+#raw_allocated_value <- data.table::fread(file.path(dir_data, "AllocatedValueIUCNJuly42019.csv"))
+gear_table <- read_csv(file.path(dir_data, "sau_gear_table.csv")) %>%
+  rename(gear_type_id=gear_id) %>%
+  dplyr::select(-c(name, notes))
+cell_ids <- read_csv(file.path(dir_spatial_csvs, "cell_ids.txt"), col_names = c("cell_id", "lon", "lat"))
+allocated_value <- raw_allocated_value %>%
+  left_join(gear_table) %>%
+  left_join(cell_ids)
+allocated_gear_value <- allocated_value %>%
+  group_by(super_code, lon, lat, year) %>%
+  summarize(value=sum(value)) %>%
+  ungroup() %>%
+  group_by(super_code, lon, lat) %>%
+  summarize(mean_value = mean(value)) %>% 
+  ungroup()
+write_csv(allocated_gear_value, file.path(dir_data, "allocated_super_gear_value.csv"))
+
+```
+
+```{r cost-of-fishing}
+
+
+
+```
+
+
+
+
+```{r eez-shape-file}
+
+non_min_min <- function(x, na.rm=T){
+  if(na.rm){
+    if(length(x)>2){
+    min_value <- min(x)
+    #max_value <- max(x)
+    x <- x[x!=min_value]
+    #x <- x[x!=max_value]
+    return(min(x))
+  } else {
+    return(min(x))
+  }
+  }
+}
+
+    
+non_min_min <- function(x=NA, na.rm=TRUE){
+  #Returns value closest to min value that isn't the min if there is more than two values
+  if(length(na.omit(x))==0){
+    return(min(na.omit(x), 0))
+  } else if(length(unique(x))>2){
+    min_value <- min(x)
+    x <- x[x!=min_value]
+    return(min(na.omit((x))))
+  } else {
+    return(min(na.omit(x)))
+  }
+}
+
+non_max_max <- function(x=NA, na.rm=TRUE){
+  #Returns value closest to max value that isn't the max if there is more than two values 
+  if(length(na.omit(x))==0){
+    return(max(na.omit(x), 0))
+  } else if(length(unique(x))>2){
+    max_value <- max(x)
+    x <- x[x!=max_value]
+    return(max(na.omit(x)))
+  } else {
+    return(max(na.omit(x)))
+  }
+}
+
+
+#cell_size <- "01"
+cell_size <- "05"
+crs_string <- "+init=epsg:4326"
+cell_ids_rast <- raster(file.path(dir_spatial, paste("cell_ids_", cell_size, "_rast.tif", sep="")))
+proj4string(cell_ids_rast) <- CRS(crs_string)
+eez_data_raw <- st_read(file.path(dir_spatial, "sau_eez", "MarineLayerID_2_12_FINAL.shp"))
+#eez_data <- eez_data_raw %>% dplyr::select(EEZID, Cell_ID)
+eez_data <- valid_check(eez_data_raw)
+eez_data <- eez_data %>%
+  clip_to_globe() %>%
+  st_transform(crs_string)
+eez_data <- eez_data %>% dplyr::select(EEZID, Cell_ID)
+eez_data_full <- eez_data
+
+eez_rast_count <- fasterize::fasterize(eez_data, cell_ids_rast, field = 'EEZID', fun='count') #This might give some incorrect matches at the borders of eez where a cell straddles two or more areas. 
+stack_rast_test <- stack(cell_ids_rast, eez_rast_count)
+eez_cell_count_test <- tibble(cell_id =  values(stack_rast_test@layers[[1]]),
+                       count = values(stack_rast_test@layers[[2]]))
+eez_cell_count_test <- eez_cell_count_test %>% filter(count >2)
+
+#Does this equal 0? If so, my current method with work to get all possible EEZ ID values
+nrow(eez_cell_count_test %>% filter(count>4))
+
+eez_rast1 <- fasterize::fasterize(eez_data, cell_ids_rast, field = 'EEZID', fun='max') #This might give some incorrect matches at the borders of eez where a cell straddles two or more areas. 
+eez_rast2 <- fasterize::fasterize(eez_data, cell_ids_rast, field = 'EEZID', fun='min') #This might give some incorrect matches at the borders of eez where a cell straddles two or more areas. 
+
+eez_data <- eez_data_full#[10000:15000,]
+eez_rast3 <- rasterize(eez_data, cell_ids_rast, field='EEZID', fun = non_min_min) 
+eez_rast4 <- rasterize(eez_data, cell_ids_rast, field='EEZID', fun = non_max_max)
+
+plot(eez_rast3)
+plot(eez_rast4)
+
+#I can't get the multiple function to work, and it is very slow as it uses 'rasterize'
+# eez_rast_all <- rasterize(eez_data, cell_ids_rast, field='EEZID', fun = function(x,...)c(min(x), max(x), non_min_min(x), non_max_max(x)))
+
+stack_rast <- stack(cell_ids_rast, eez_rast1, eez_rast2, eez_rast3, eez_rast4)
+#writeRaster(eez_rast, file.path(dir_spatial, paste("eez_", cell_size, "_rast.tif", sep="")))
+
+writeRaster(stack_rast,file.path(dir_spatial, paste("eez_", cell_size, "_rast.grd", sep="")), format="raster")
+
+#stack_rast <- stack(cell_ids_rast, eez_rast1, eez_rast2, eez_rast3, eez_rast4)
+
+eez_cell_ids <- tibble(cell_id =  values(stack_rast@layers[[1]]),
+                       eez_id1 = values(stack_rast@layers[[2]]),
+                       eez_id2 = values(stack_rast@layers[[3]]),
+                       eez_id3 = values(stack_rast@layers[[4]]),
+                       eez_id4 = values(stack_rast@layers[[5]])
+                       )
+plot(stack_rast)
+
+eez_cell_ids <- eez_cell_ids %>% 
+  gather(key="eez_frame", value="eez_id", -cell_id) %>% 
+  dplyr::select(-eez_frame) %>% 
+  mutate(eez_id = ifelse(is.na(eez_id), 0, eez_id)) %>% 
+  mutate(eez_id = ifelse(abs(eez_id)==Inf, 0, eez_id)) %>% 
+  unique() 
+
+
+write_csv(eez_cell_ids, file.path(dir_spatial, paste("eez_cell_ids_", cell_size, ".csv", sep="")))
+
+
+```
+
+```{r cell-id-eezs-all-matches}
+
+crs_string <- "+init=epsg:4326"
+cell_ids_rast <- raster(file.path(dir_spatial, paste("cell_ids_", cell_size, "_rast.tif", sep="")))
+eez_rast <- raster(file.path(dir_spatial, paste("eez_", cell_size, "_rast.grd", sep="")))
+proj4string(cell_ids_rast) <- CRS(crs_string)
+proj4string(eez_rast) <- CRS(crs_string)
+stack_rast <- stack(cell_ids_rast, eez_rast)
+
+eez_cell_ids <- tibble(cell_id =  values(stack_rast@layers[[1]]),
+                       eez_id1 = values(stack_rast@layers[[2]]),
+                       eez_id2 = values(stack_rast@layers[[3]]),
+                       eez_id3 = values(stack_rast@layers[[4]]),
+                       eez_id4 = values(stack_rast@layers[[5]])
+                       )
+
+eez_cell_ids <- eez_cell_ids %>% 
+  gather(key="eez_frame", value="eez_id", -cell_id) %>% 
+  dplyr::select(-eez_frame) %>% 
+  unique() %>% 
+  mutate(eez_id = ifelse(is.na(eez_id), 0, eez_id))
+write_csv(eez_cell_ids, file.path(dir_spatial, paste("eez_cell_ids_", cell_size, ".csv", sep="")))
+```
+
+
+
+```{r cell-id-eezs-single-match, eval=F}
+
+crs_string <- "+init=epsg:4326"
+cell_ids_rast <- raster(file.path(dir_spatial, paste("cell_ids_", cell_size, "_rast.tif", sep="")))
+eez_rast <- raster(file.path(dir_spatial, paste("eez_", cell_size, "_rast.tif", sep="")))
+proj4string(cell_ids_rast) <- CRS(crs_string)
+proj4string(eez_rast) <- CRS(crs_string)
+stack_rast <- stack(cell_ids_rast, eez_rast)
+
+eez_cell_ids <- tibble(cell_id =  values(stack_rast@layers[[1]]),
+                       eez_id = values(stack_rast@layers[[2]]))
+eez_cell_ids <- eez_cell_ids %>% 
+  mutate(eez_id = ifelse(is.na(eez_id), 0, eez_id))
+write_csv(eez_cell_ids, file.path(dir_spatial, paste("eez_cell_ids_", cell_size, ".csv", sep="")))
+
+```
+
+
+
+```{r cell-id-water-area}
+#cell_size <- "01"
+cell_size <- "05"
+crs_string <- "+init=epsg:4326"
+cell_ids_rast <- raster(file.path(dir_spatial, paste("cell_ids_", cell_size, "_rast.tif", sep="")))
+proj4string(cell_ids_rast) <- CRS(crs_string)
+eez_data_raw <- st_read(file.path(dir_spatial, "sau_eez", "MarineLayerID_2_12_FINAL.shp"))
+#eez_data <- eez_data_raw %>% dplyr::select(EEZID, Cell_ID)
+eez_data <- valid_check(eez_data_raw)
+eez_data <- eez_data %>%
+  clip_to_globe() %>%
+  st_transform(crs_string)
+
+cell_id_area <- fasterize::fasterize(eez_data, cell_ids_rast, field = 'Water_Area', fun='sum') 
+cell_id_area <- rasterize(eez_data, cell_ids_rast, field = 'Water_Area', fun=function(x, na.rm) sum(na.omit(x)))
+# writeRaster(cell_id_area, file.path(dir_spatial, paste("cell_ids_area_", cell_size, ".tif", sep="")))
+plot(cell_id_area)
+stack_rast <- stack(cell_ids_rast, cell_id_area)
+
+cell_id_area_df <- tibble(cell_id =  values(stack_rast@layers[[1]]),
+                       area = values(stack_rast@layers[[2]]))
+
+write.csv(cell_id_area_df, file.path(dir_spatial, paste("cell_ids_area_", cell_size, ".csv", sep="")))
+
+x <- eez_data %>% 
+  group_by(Cell_ID) %>% 
+  summarize(Water_Area = sum(Water_Area, na.rm=TRUE))
+
+```
+

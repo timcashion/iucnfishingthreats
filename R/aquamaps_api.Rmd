@@ -1,0 +1,135 @@
+---
+title: "aqua_maps"
+author: "Tim Cashion"
+date: "26/07/2019"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo =TRUE)
+ipak <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new.pkg)) 
+    install.packages(new.pkg, dependencies = TRUE)
+  sapply(pkg, require, character.only = TRUE, quietly=TRUE)
+}
+
+packages <- c("tidyverse", 
+              "wesanderson",
+              "bookdown",
+              "knitr",
+              "rfishbase", 
+              "aquamapsdata",
+              "purrr",
+              "DT"  
+              )
+ipak(packages)
+dir_data <- "../data"
+dir_spatial <- "../spatial"
+dir_spatial_csvs <- "../spatial/csvs"
+dir_rasters <- "../spatial/spp_rasters"
+dir_output <- "../output"
+dir_figs <- "../figs"
+
+```
+
+## Aquamaps 
+Kaschner, K., K. Kesner-Reyes, C. Garilao, J. Rius-Barile, T. Rees, and R. Froese. 2016. AquaMaps: Predicted range maps for aquatic species. World wide web electronic publication, www.aquamaps.org, Version 08/2016.
+
+## Data
+```{r data-read}
+#All iucn species:
+iucn_species <- read.csv(file.path(dir_data, "iucn_species_list_version_2019-2.csv")) 
+
+#Establish list of marine species
+marine_species <- read.csv(file.path(dir_data, "spp_marine_from_version_2019-2.csv")) 
+
+#Isolate marine molluscs that aren't cone snails:
+molluscs <- iucn_species  %>% 
+  filter(result.phylum_name == "MOLLUSCA") %>% 
+  filter(result.genus_name != "Conus") %>% 
+  filter(result.taxonid %in% marine_species$iucn_sid)
+
+```
+
+
+```{r aquamaps-load, eval=F}
+download_db(force = TRUE) #DB is 1gb so takes a long time to do this download. 
+my_db <- aquamapsdata:::src_sqlite_aquamapsdata()
+
+#If you want to inspect the different Aquamaps tables, here's a function and code to do it:
+# for a db table, return a tibble with the columns and their data types
+ls_types <- function(table) {
+  res <- table %>% head %>% collect %>% lapply(type_sum) %>% unlist
+  colname <- names(res)
+  title <- as.character(table$ops$x)
+  tibble(table = title, col_name = colname, col_type = res, desc = NA)
+}
+# run the above function on all tables
+am_schema <- bind_rows(
+  my_db %>% tbl("nativemaps") %>% ls_types,
+  my_db %>% tbl("hcaf") %>% ls_types,
+  my_db %>% tbl("hspen") %>% ls_types,
+  my_db %>% tbl("occ") %>% ls_types,
+  my_db %>% tbl("taxa") %>% ls_types
+)
+datatable(am_schema)
+
+
+```
+
+
+```{r extract-aquamaps}
+#Get species list of molluscs that have aquamaps
+am_species <- my_db %>% 
+  tbl("taxa") %>% 
+  collect %>% 
+  mutate(SciName = paste(Genus, Species)) %>% 
+  filter(SciName %in% molluscs$result.scientific_name) %>% 
+  select(SciName, SPECIESID) 
+
+#Get maps for species in list
+am_species_maps <- my_db %>% tbl("nativemaps") %>% collect %>% filter(SpeciesID %in% am_species$SPECIESID) 
+
+#get reference for map cell ids:
+am_map <- my_db %>% tbl("hcaf") %>% collect %>% select(CsquareCode, CenterLat, CenterLong, CellArea)
+
+am_species_maps <- am_species_maps %>% left_join(am_map)
+
+#Plot maps to check: (takes a long time)
+# am_species_maps %>% 
+#   ggplot(aes(x=CenterLong, y=CenterLat, fill=probability)) + 
+#   geom_tile()
+
+am_species_maps <- am_species_maps %>% left_join(am_species, by=c("SpeciesID"="SPECIESID")) %>% 
+  dplyr::select(-c(CsquareCode, FAOAreaYN, BoundBoxYN, SpeciesID)) %>% 
+  left_join(iucn_species %>% select(result.taxonid, result.scientific_name), by=c("SciName"="result.scientific_name"))
+write_csv(am_species_maps, file.path(dir_data, "am_mollusc_maps.csv"))
+
+```
+
+
+```{r check-maps}
+x <- data.table::fread(file.path(dir_data, "am_mollusc_maps.csv"))
+am_species <- x %>% pull(SciName) %>% unique()
+
+iucn_status_molluscs_maps <- iucn_species %>% filter(result.scientific_name %in% am_species)
+iucn_status_molluscs_maps %>% group_by(result.category) %>% summarize(n=n())
+
+# result.category
+# <fctr>
+# n
+# <int>
+# CR	1			
+# DD	94			
+# EN	1			
+# LC	154			
+# VU	1	
+
+#Not really worth it:
+# DD are currently NA and thus don't get a score.
+# LC get a score of 0 and so don't contribute to the WTS 
+# Only three species have aquamaps and are Threatened. 
+```
+
