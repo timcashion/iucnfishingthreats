@@ -56,7 +56,7 @@ Red List Categories, spatial habitat maps, identified threats by species, and a 
 
 We accessed spatial species distribution shape files from the Red List for comprehensively assessed groups that include marine organisms [@IUCN2019]. We supplemented this with Bird Life International species distribution files for birds that occur in marine areas [@BirdLifeInternational2018]. Marine molluscs have not been comprehensively assessed (i.e., less than 80% of the species in this group have not been assessed) by the IUCN except for Cone Snails (*Conus* spp.), and this is a gap in our data coverage. We converted the species distribution maps to raster format at various spatial scales to correspond to existing datasets in fisheries research including a 0.5° by 0.5°, 0.1° by 0.1°, and 10 km^2^ x 10 km^2^ scale. We rasterised the species distribution files following the same process of [@OHara2019].
 
-We used the same prioritisation of species Categories based on regional assessments where possible as in O'Hara [-@OHara2019]. Here, regional assessments were matched to associated (i.e., overlapping) marine ecoregions [@Spalding2007a] that were then associated with their corresponding cells of the spatial grid used. Regional assessments were used in preference of global assessments where possible. 
+We used the same prioritisation of species Categories based on regional assessments where possible as in O'Hara [-@OHara2019]. Here, regional assessments were matched to associated (i.e., overlapping) marine ecoregions [@Spalding2007] that were then associated with their corresponding cells of the spatial grid used. Regional assessments were used in preference of global assessments where possible. 
 
 ```{r progressive-refinement-table, fig.cap="Reason for elimination of species included in the final analysis", echo=FALSE, message=F}
 #I want to show how we get from all marine species to our narrower list that rely on this habitat to those that we find spatial data for and have fishing gear labelled threats
@@ -155,9 +155,9 @@ We used the *Sea Around Us* database (v.47) for catches by gear type [@Pauly2015
 
 In addition, we use the corollary Fisheries Economics Research Unit (FERU) ex-vessel price database that includes reported and estimated first-sale prices for all taxa for each fishing country by year [@Tai2017] to incorporate the potential lost revenues for fisheries closures in areas of high biological importance. Revenue is calculated as the ex-vessel price (real 2010 USD per metric tonne) of a specific taxon caught by a country in a given year multiplied by its landings amount in metric tonnes. 
 
-Due to the importance of gear to our analysis, and its importance as a determinent on the ex-vessel price of fish [@Lee2014; @Asche2012; @Mcconnell2000], we modify the ex-vessel prices by a gear multiplier. 
+Due to the importance of gear to our analysis, and its importance as a determinent on the ex-vessel price of fish [@Lee2014; @Asche2012; @Mcconnell2000], we modify the ex-vessel prices by a gear multiplier. We determine this gear multiplier through a hedonic pricing model where gear type is an explanatory variable of the ex-vessel fish price. 
 
-We combined two datasets that report fisheries ex-vessel revenues by gear type and species. The first is the National Marine Fisheries Service annual commercial landings by gear type [@NMFS2017]. The second is the monthly landings by gear type, port and species of the UK's fisheries [@MarineManagementOrganisation2017]. We harmonized the gear types listed in each to match our existing dataset gear types. While these two datasets are not representative of global fisheries nor ex-vessel prices for all species, they give adequate coverage to derive the effect of different gear types used for catching different species and how it modifies ex-vessel prices. 
+First, we combined two datasets that report fisheries ex-vessel revenues by gear type and species. The first is the National Marine Fisheries Service annual commercial landings by gear type [@NMFS2017]. The second is the monthly landings by gear type, port and species of the UK's fisheries [@MarineManagementOrganisation2017]. We harmonized the gear types listed in each to match our existing dataset gear types. While these two datasets are not representative of global fisheries nor ex-vessel prices for all species, they give adequate coverage to derive the effect of different gear types used for catching different species and how it modifies ex-vessel prices. 
 
 We then used a fixed-effects model with linear regression to derive the effect of changing gear type on the ex-vessel price $Price_{xyzt}$ for species $x$, gear $y$, in country $z$ in year $t$. We used the natural logarithm of landings and prices as these variables are closer to a normal distribution when log-transformed, and thus reduces potential heteroscedasticity in our residuals. We also use the country, species, and year as explanatory variables to account for other changes in the price both over time  and between these different markets. 
 
@@ -165,9 +165,9 @@ Our regression equation is:
 
 $ln(Price_{xyzt}) = \beta_0 + \beta_1Gear_y + \beta_2ln(L_{xyzt}) + \beta_3Species_x + \beta_4Year_t + \beta_5Country_z$ (1)  
 
-We used the estimated gear-type coefficients as gear specific multipliers $\beta_1_{y}$ that will modify the ex-vessel price of fish caught.
+We used the estimated gear-type coefficients as gear specific multipliers $\beta_1_{y}$ that will modify the ex-vessel price of fish caught (Table \@ref(tab:gear-multiplier-table)).
 
-Finally, we used an updated version of FERU's cost of fishing database [@Lam2011] to account for the cost of fishing that varies by country and gear type. Cost of fishing is broken down into its component parts in the database (e.g., fuel, labour, capital, maintenance, etc.), and here we use the total cost by gear type and country per tonne of fish landed ($C_{yz}$). We then derive the profit by gear type and country for each cell $i$ based on the catch by gear type multiplied by the ex-vessel price multiplied by the gear type multiplier ($M_{y}$) substract the cost of fishing for that amount of landings. Therefore, profit (*P*) in cell *i* is equal to: 
+Finally, we used an updated version of FERU's cost of fishing database [@Lam2011] to account for the cost of fishing that varies by country and gear type. Cost of fishing is broken down into its component parts in the database (e.g., fuel, labour, capital, maintenance, etc.), and here we use the total cost by gear type and country per tonne of fish landed ($C_{yz}$). Where the cost of fishing was not available for a particular gear and country, we used the regional average for that gear type, and where this was not possible we used the average cost across gear types for the region. We used the FAO socioeconomic regions for this stage of the analysis. We then derive the profit by gear type and country for each cell $i$ based on the catch by gear type multiplied by the ex-vessel price multiplied by the gear type multiplier ($M_{y}$) substract the cost of fishing for that amount of landings. Therefore, profit (*P*) in cell *i* is equal to: 
 
 $P_{i} = \sum_{x=1}^{x} (L_{xyi} * P_{x} * M_{y}) - (L_{xyi} * C_{y})$ (2)  
 
@@ -285,6 +285,18 @@ gfw_gear_table <- gfw_gear_table %>%
 colnames(gfw_gear_table) <- c("GFW Gear Type", "GFW Description")
 
 kable(gfw_gear_table, caption="Gear types identified in the *Global Fishing Watch* database.")
+```
+
+Table S5. 
+```{r gear-multiplier-table}
+gear_multiplier_table <- read_csv("./data/gear_price_multipliers.csv")
+gear_multiplier_table <- gear_multiplier_table %>% 
+  mutate(super_code = str_to_sentence(super_code)) %>% 
+  mutate(p.value = ifelse(super_code %in% c("Unknown", "Bottom trawl"), "Not Estimated", "***"))
+
+colnames(gear_multiplier_table) <- str_to_title(colnames(gear_multiplier_table))
+kable(gear_multiplier_table, caption="Regression results for gear types used and their gear multipliers used", digits=3)
+
 ```
 
 

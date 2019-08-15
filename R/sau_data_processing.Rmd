@@ -18,6 +18,8 @@ ipak(packages)
 
 dir_data <- "../data"
 dir_spatial_csvs <- "../spatial/csvs"
+dir_spatial <- "../spatial"
+
 ```
 
 ```{r, eval=FALSE}
@@ -232,7 +234,7 @@ write_csv(eez_cell_ids, file.path(dir_spatial, paste("eez_cell_ids_", cell_size,
 #cell_size <- "01"
 cell_size <- "05"
 crs_string <- "+init=epsg:4326"
-cell_ids_rast <- raster(file.path(dir_spatial, paste("cell_ids_", cell_size, "_rast.tif", sep="")))
+cell_ids_rast <- raster(file.path(dir_spatial, "rasters", paste("cell_ids_", cell_size, "_rast.tif", sep="")))
 proj4string(cell_ids_rast) <- CRS(crs_string)
 eez_data_raw <- st_read(file.path(dir_spatial, "sau_eez", "MarineLayerID_2_12_FINAL.shp"))
 #eez_data <- eez_data_raw %>% dplyr::select(EEZID, Cell_ID)
@@ -241,8 +243,11 @@ eez_data <- eez_data %>%
   clip_to_globe() %>%
   st_transform(crs_string)
 
-cell_id_area <- fasterize::fasterize(eez_data, cell_ids_rast, field = 'Water_Area', fun='sum') 
-cell_id_area <- rasterize(eez_data, cell_ids_rast, field = 'Water_Area', fun=function(x, na.rm) sum(na.omit(x)))
+cell_id_area1 <- fasterize::fasterize(eez_data, cell_ids_rast, field = 'Water_Area', fun='sum') 
+cell_id_area2 <- rasterize(eez_data, cell_ids_rast, field = 'Water_Area', fun=function(x, na.rm) sum(na.omit(x)))
+plot(cell_id_area1)
+plot(cell_id_area2)
+
 # writeRaster(cell_id_area, file.path(dir_spatial, paste("cell_ids_area_", cell_size, ".tif", sep="")))
 plot(cell_id_area)
 stack_rast <- stack(cell_ids_rast, cell_id_area)
@@ -250,11 +255,13 @@ stack_rast <- stack(cell_ids_rast, cell_id_area)
 cell_id_area_df <- tibble(cell_id =  values(stack_rast@layers[[1]]),
                        area = values(stack_rast@layers[[2]]))
 
-write.csv(cell_id_area_df, file.path(dir_spatial, paste("cell_ids_area_", cell_size, ".csv", sep="")))
+write.csv(cell_id_area_df, file.path(dir_spatial_csvs, paste("cell_ids_area_", cell_size, ".csv", sep="")))
 
 x <- eez_data %>% 
-  group_by(Cell_ID) %>% 
+  group_by(Seq) %>% 
   summarize(Water_Area = sum(Water_Area, na.rm=TRUE))
+
+write.csv(x, file.path(dir_spatial_csvs, paste("cell_ids_sau_waterarea_", cell_size, ".csv", sep="")))
 
 ```
 

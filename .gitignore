@@ -8,8 +8,12 @@
 .Ruserdata
 .spatial
 .Rproj.user
-.data
-.figs
-.images
-.iucn_classifier
-
+spatial/
+data/
+figs/
+images/
+iucn_classifier/
+important_refs/
+drafts/
+output/
+*.docx

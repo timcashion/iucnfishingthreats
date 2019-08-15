@@ -1,6 +1,6 @@
 ---
 title: "IUCN_Supplemental Figures"
-author: "Tim Cashion & U. Rashid Sumaila"
+author: "Tim Cashion et al."
 date: "`r date()`"
 output: bookdown::html_document2
 bibliography: MyCollection.bib
@@ -259,7 +259,7 @@ number_marine_species_included <- length(data.table::fread(file.path(dir_data, "
 number_marine_fishing_threats <- length(data.table::fread(file.path(dir_data, "species_fishing_threats.csv")) %>% pull(iucn_sid) %>% unique())
 
 
-text_threats <- read.csv(file.path(dir_data, "narrative_threats_output.csv")) %>% rename(iucn_sid=scientific_name)
+text_threats <- read.csv(file.path(dir_data, "narrative_threats_output.csv")) %>% rename(iucn_sid=iucn_id)
 text_threats$trawlers <- ifelse(text_threats$bottom_trawl==1|text_threats$pelagic_trawl==1|text_threats$trawl_unspec==1, 1, NA)
 text_threats <- text_threats %>% 
   gather(key="super_code", value="threat", -iucn_sid) %>% 

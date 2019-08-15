@@ -47,24 +47,30 @@ uk <- uk %>%
          Species=species) %>%
   filter(Tonnes >0) %>% 
   filter(Value > 0) %>% 
+  filter(Year >2008) %>% #The 2008 data does not have species information, only species group. 
   mutate(Price=Value/Tonnes) %>% 
   mutate(Country="UK")
 
-nmfs_species_names <- data.table::fread(file.path(dir_data, "US_Common_Names.csv"))
-nmfs_species_names <- nmfs_species_names %>% mutate(Name = str_to_lower(Name))
+#nmfs_species_names <- data.table::fread(file.path(dir_data, "US_Common_Names.csv"))
+nmfs_species_names <- data.table::fread(file.path(dir_data, "nmfs_species_list.csv"))
+nmfs_species_names <- nmfs_species_names %>% mutate(Species = str_to_lower(Species)) %>% distinct()
+nmfs_species_names <- nmfs_species_names %>% filter(Sciname != "#N/A")
+nmfs_species_names_dupl <- nmfs_species_names %>% group_by(Species) %>% summarize(n=n()) %>% filter(n>1)
+
+
 asfis <- data.table::fread(file.path(dir_data, "ASFIS_sp_2019.txt")) %>% mutate(English_name = str_to_lower(English_name))
 
 us_gear_table <- read_csv(file.path(dir_data, "US_Gear.csv"))
 uk_gear_table <- read_csv(file.path(dir_data, "UK_Gear.csv"))
-
+sau_gear_table <- read_csv(file.path(dir_data, "sau_gear_table.csv"))
 ```
 
 
-```{r cleaning}
+```{r cleaning-nmfs}
 
 nmfs <- nmfs %>% left_join(us_gear_table)
-nmfs <- nmfs %>% mutate(Species= str_to_lower(Species)) %>% left_join(nmfs_species_names, by=c("Species"="Name"))
-nmfs %>% filter(is.na(SciName)) %>% pull(Species) %>% unique()
+nmfs <- nmfs %>% mutate(Species= str_to_lower(Species)) %>% left_join(nmfs_species_names, by=c("Species"="Species"))
+#nmfs %>% filter(is.na(Sciname)) %>% pull(Species) %>% unique()
 
 
 nmfs <- nmfs %>% mutate(Species = str_to_lower(Species))
@@ -73,24 +79,44 @@ nmfs <- nmfs %>%
          SurNom = gsub(Species, pattern=", .*", replacement="")) %>% 
   mutate(CommonName = if_else(PreNom==SurNom, PreNom, paste(PreNom, SurNom)))
 nmfs <- nmfs %>% left_join(asfis, by=c("CommonName"="English_name"))
-nmfs %>%  filter(is.na(Scientific_name)) %>% pull(Species) %>% unique()
+missing_names <- nmfs %>%  filter(is.na(Sciname)) %>% select(Species, PreNom, SurNom, CommonName)  %>% distinct()
+# missing_names <- nmfs %>%  filter(is.na(Scientific_name) & is.na(Sciname)) %>% select(Species, PreNom, SurNom, CommonName) %>% distinct()
+write.csv(missing_names, "../data/missing_nmfs_names.csv")
 
-nmfs <- nmfs %>% dplyr::select(Year, Species, super_code, Country, Price, Tonnes)
-uk <- uk %>% left_join(uk_gear_table) %>% dplyr::select(Year, Species, super_code, Country, Price, Tonnes)
+# fish_matches <- rfishbase::common_to_sci(missing_names$CommonName, server="fishbase")
+# sealife_matches <- rfishbase::common_to_sci(missing_names$CommonName, server="sealifebase")
+nmfs <- nmfs %>% 
+  mutate(Sciname = ifelse(is.na(Sciname), Species, Sciname))
 
-model_data <- bind_rows(nmfs, uk)
 
-#Set reference case:
-model_data <- model_data %>% 
-  mutate(super_code = fct_relevel(super_code, "bottom trawl", after=0)) %>% 
-  mutate(Species = str_to_lower(Species))
+nmfs <- nmfs %>% dplyr::select(Year, Sciname, super_code, Country, Price, Tonnes) %>% 
+  rename(Scientific_name=Sciname)
 
 #unique(model_data$Species)
+
+
+```
+
+```{r species-matching}
+uk <- uk %>% left_join(asfis %>% select(`3A_CODE`, Scientific_name), by=c("species_code"="3A_CODE"))
+uk <- uk %>% 
+  mutate(Scientific_name = ifelse(is.na(Scientific_name), Species, Scientific_name))
+#uk %>% filter(is.na(Scientific_name))
+uk <- uk %>% left_join(uk_gear_table) %>% dplyr::select(Year, Scientific_name, super_code, Country, Price, Tonnes)
+
 ```
 
 
+
 ```{r modeling}
-mod <- lfe::felm(log(Price) ~ super_code + Species + Year + Country + log(Tonnes),
+
+model_data <- bind_rows(nmfs, uk)
+#Set reference case:
+model_data <- model_data %>% 
+  mutate(super_code = fct_relevel(super_code, "bottom trawl", after=0)) %>% 
+  mutate(Scientific_name = str_to_lower(Scientific_name))
+
+mod <- lfe::felm(log(Price) ~ super_code + Scientific_name + Year + Country + log(Tonnes),
                  data=model_data)
 
 plot(model_data$Year, mod$residuals)
@@ -105,7 +131,7 @@ output_raw <- output_raw %>%
   mutate(term = gsub(term, pattern="super_code", replacement="")) %>% 
   rename(super_code=term)
 
-missing_gear_types <- gear_table %>% pull(super_code) %>% unique()
+missing_gear_types <- sau_gear_table %>% pull(super_code) %>% unique()
 missing_gear_types <- missing_gear_types[!missing_gear_types %in% output_raw$super_code]
 
 missing_cases <- tibble(super_code= missing_gear_types, 
