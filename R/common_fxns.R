@@ -1,12 +1,4 @@
 
-####Directories####
-dir_data <- "./data"
-dir_spatial <- "./spatial"
-dir_figs <- "./figs"
-dir_manuscript_figs <- "./figs/manuscript_figs"
-dir_spatial_csvs <- "./spatial/csvs"
-dir_rasters <- "./spatial/spp_rasters"
-dir_output <- "./output"
 
 ####Static values####
 crs_string <- "+init=epsg:4326"
@@ -88,12 +80,47 @@ convert_to_sau <- function(df, cell_res=0.5){
 }
 
 #GFW Paper uses following formula to align to 0.5 degree grid:
-half_deg_grid <- function(df){
+gfw_to_new_grid <- function(df=NA, res=NA){
   df <- df %>% 
-    mutate(lon = floor((lon_bin/100)/0.5) * 0.5, 
-           lat = floor((lat_bin/100)/0.5) * 0.5)
+    dplyr::mutate(
+      lon = (floor((lon_bin/100)/res) * res) + res/2, 
+      lat = (floor((lat_bin/100)/res) * res) + res/2
+      )
   return(df)
 }
+
+summarize_gfw <- function(file, cell_res="all") {
+  dat <- data.table::fread(file.path(effort_dir,file))
+  #dat <- read_csv(file.path(effort_dir,file), col_types = "Dddccddd")
+  
+  #df <- convert_to_centroid(dat)
+  if(cell_res=="all"){
+    df <- dat
+    df$sau_lon <- floor((df$lon)/0.5) * 0.5 #plyr::round_any(df$lon, 0.25, f=round) #Fit GFW grid to coarser SAU grid
+    df$sau_lat<- floor((df$lat)/0.5) * 0.5 #plyr::round_any(df$lat, 0.25, f=round) #Fit GFW grid to coarser SAU grid 
+    df <- df %>%
+      group_by(date, geartype, lat_bin, lon_bin, lat, lon, sau_lon, sau_lat) %>% 
+      summarize(vessel_hours = sum(vessel_hours),
+                fishing_hours = sum(fishing_hours),
+                mmsi_present = sum(mmsi_present))
+  }else if(cell_res==0.5){
+    df <- convert_to_centroid(dat)
+    df <- convert_to_sau(df)
+    df <- df %>%
+      group_by(date, lat, lon, geartype) %>% 
+      summarize(vessel_hours = sum(vessel_hours),
+                fishing_hours = sum(fishing_hours))
+  } else {
+    df <- dat
+    df <- gfw_to_new_grid(df=df, res=cell_res)
+    df <- df %>%
+      group_by(date, lat, lon, geartype) %>% 
+      summarize(vessel_hours = sum(vessel_hours),
+                fishing_hours = sum(fishing_hours))
+  }
+  return(df)
+}
+
 
 #clip_to_globe from common_fxns.R from https://github.com/oharac/spp_risk_dists 
 clip_to_globe <- function(x) {
@@ -113,13 +140,6 @@ clip_to_globe <- function(x) {
                           'xmax' = +180,
                           'ymax' =  +90)) %>%
       st_cast('MULTIPOLYGON')
-    # z <- as(x, 'Spatial') %>%
-    #   raster::crop(raster::extent(-180, 180, -90, 90)) %>%
-    #   st_as_sf()
-    ### otherwise is sfc_GEOMETRY which doesn't play well with fasterize.
-    ### The st_crop solution works great most of the time; but for
-    ### spp 21132910 (at least) the crop turned things into linestrings
-    ### that couldn't be converted with st_cast('MULTIPOLYGON').
   } else {
     message('All bounds OK, no clipping necessary')
     z <- x

@@ -1,0 +1,90 @@
+---
+title: "gfw"
+author: "Tim"
+date: "August 15, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r map-setup}
+pal <- wes_palette(name = "Zissou1", n=100, type = c("continuous"))
+#Load it!
+World <- readOGR(file.path(dir_spatial,"ne_10m_coastline/ne_10m_coastline.shp"))
+
+Forty_World<- fortify(World)
+
+base_map <- ggplot() +
+  geom_path(data = Forty_World, aes(x = long,
+                                    y = lat,
+                                    group = group
+  ),
+  color = "black",
+  size = 0.25) +
+  theme_classic() + 
+  labs(list(title = "",
+            x = "Longitude",
+            y = "Latitude")) +
+  #scale_fill_gradientn(colours = pal) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  labs(fill="") + 
+  NULL 
+
+
+
+```
+
+
+```{r gfw-theme}
+theme_gfw_paper <-  theme(text = element_text(family="Arial", face="bold", size=12),
+        axis.text.x = element_text(size = 12, colour = "black"),
+        axis.text.y = element_text(size = 12, colour = "black"),
+        axis.line.x = element_line(colour = "black", size = .5),
+        axis.line.y = element_line(colour = "black", size = .5),
+        legend.position = "bottom",
+        axis.title.y = element_text(size = 12, margin=margin(0,15,0,0)),
+        axis.title.x = element_text(size = 12, margin=margin(15,0,0,0)),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        plot.margin = unit(c(1,1,1,1), "cm")
+        )
+
+cont_fill = 'white'#'grey30' #'grey80'
+back_fill =  'white'#'#202A50' #'black' #'#1F2A4F'
+cont_color = 'grey60'#'grey30'
+#color_grad = c( "#414487", "#2A788E", "#22A884", "#7AD151","#FDE725","#FFC04C")
+color_grad = c("#C6DBEF", "#9ECAE1", "#6BAED6","#4292C6" ,"#2171B5", "#084594") #blues
+```
+
+
+```{r pressure, echo=FALSE}
+gg <- base_map +
+  geom_tile(data=gfw_2016, aes(x=lon, y=lat, fill=log10(fishing_hours))) +
+  scale_fill_viridis_c("Fishing hours", na.value = NA, limits = c(1, 5), 
+                       breaks=c(seq(1,5,length.out = 4)),
+                       labels = c('1','10', '100','> 1000' ), 
+                       direction = -1)+
+    coord_sf(datum = NA) +
+    theme_gfw_paper +
+    theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks = element_blank(),
+          axis.line = element_blank(),
+          panel.background = element_rect(color = NA, fill = back_fill),
+          #legend.position = 'none',
+          legend.direction="horizontal",
+          plot.margin=unit(c(0,-0.5,-0.5,-0.5), 'cm'),
+          legend.text = element_text(size = 6, family = 'Times New Roman'),
+          legend.title = element_text(size = 7, family = 'Times New Roman')) + 
+  NULL
+gg
+
+```
+

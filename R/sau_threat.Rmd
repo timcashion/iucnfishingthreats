@@ -1,0 +1,94 @@
+---
+title: "sau_threat"
+author: "Tim"
+date: "August 19, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+source("../R/common_fxns.R")
+packages <- c("tidyverse")
+ipak(packages)
+dir_data <- "../data"
+dir_spatial_csvs <- "../spatial/csvs"
+dir_rasters <- "../spatial/spp_rasters"
+dir_output <- "../output"
+
+cell_size = "05"
+```
+
+Objective: To determine spatial overlap of fisheries catches with fishing gear threats from the IUCN. 
+
+Dependencies:
+- IUCN spatial data has been converted to csvs at 0.5 degree scale
+- SAU profit data has been processed
+
+```{r raw-data}
+sau_profit <- read_csv(file.path(dir_data, "allocated_super_gear_profit.csv"))
+```
+
+
+```{r data-iucn}
+risk_codes <- read.csv(file.path(dir_data, "risk_code_lookup.csv"), stringsAsFactors = F)
+spat_files <- list.files(file.path(paste(dir_rasters, "_", cell_size, sep="")))
+spat_files <- spat_files[spat_files != "desktop.ini"]
+raster_read <- function(filename){
+  id <- gsub(filename, pattern="iucn_sid_", replacement = "")
+  id <- gsub(id, pattern=".csv", replacement = "")
+  spp_rast <- data.table::fread(file.path(paste(dir_rasters, "_", cell_size, sep=""), filename))
+  if(nrow(spp_rast)>0){
+    spp_rast$iucn_sid <- as.numeric(id)
+    return(spp_rast)
+  }
+}
+
+spat_list <- parallel::mclapply(spat_files, raster_read)
+spat_list <- bind_rows(spat_list) 
+cell_ids <- read.csv(file.path(dir_spatial_csvs , paste("cell_ids_", cell_size,".txt", sep="")), header=T, col.names = c("cell_id", "lon", "lat"))
+cell_id_area <- data.table::fread(file.path(dir_spatial_csvs, paste("cell_id_area_", cell_size,".csv", sep="")))
+
+spat_data <- spat_list %>% 
+  left_join(cell_ids, by="cell_id") %>%
+  mutate(category = if_else(is.na(rgn_category), global_category, rgn_category)) %>% 
+  left_join(risk_codes %>% dplyr::select(-c(category)), by=c("category"="code"))
+gc()
+```
+
+
+```{r sau-gear-type}
+
+sau_gear_types <- unique(sau_profit$super_code)
+text_threats <- read.csv(file.path(dir_data, "narrative_threats_output_tidy.csv"))
+iucn_gear_types <- unique(text_threats$super_code)
+gear_types <- iucn_gear_types[grep(iucn_gear_types, pattern=paste(sau_gear_types, collapse="|"))]
+
+for(gear in gear_types){
+  gear_species <- text_threats %>%
+    filter(super_code %in% gear) %>% 
+    dplyr::select(iucn_sid) %>% 
+    unique()
+  sau_dat <- sau_profit %>% 
+    filter(super_code==gear) %>% 
+    group_by(lon, lat) %>% 
+    summarize(catch = sum(mean_catch),
+              profit = sum(mean_profit)) %>% 
+    ungroup() %>% 
+    filter(catch > 0)
+  
+  threat_dat <- spat_data %>% 
+    filter(iucn_sid %in% gear_species$iucn_sid)  %>% 
+    group_by(lon, lat) %>% 
+    summarize(n = sum(presence, na.rm = T),
+              weighted_score = sum(cat_score, na.rm = T)) %>% 
+    ungroup()
+  
+  threat_dat <- threat_dat %>% full_join(sau_dat, by = c("lon", "lat"))
+  threat_dat <- threat_dat %>% replace(., is.na(.), 0)
+  write_csv(threat_dat, file.path(dir_output, paste(gear, "_SAU_IUCN_threat_", cell_size, ".csv", sep="")))
+}
+
+
+```
+
+

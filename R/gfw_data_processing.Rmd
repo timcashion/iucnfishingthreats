@@ -6,6 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+
 knitr::opts_chunk$set(echo = TRUE)
 source(here::here("R", "common_fxns.R"))
 
@@ -13,11 +14,15 @@ packages <- c("tidyverse",
               "maptools", 
               "rgdal", 
               "sf", 
-              "wesanderson",
               "sp",
               "raster")
 ipak(packages)
-theme_set(theme_classic())
+dir_spatial_csvs <- "../spatial/csvs"
+effort_dir <- "../data/fishing_effort/daily_csvs"
+dir_output <- "../output"
+dir_data <- "../data"
+dir_rasters <- "../spatial/spp_rasters"
+
 ```
 
 GFW Readme file:
@@ -60,65 +65,12 @@ Table Schema
  - mmsi_present: number of mmsi of this flag state and geartype that visited this grid cell on this day 	"
 
 
-```{r map-setup}
-pal <- wes_palette(name = "Zissou1", n=100, type = c("continuous"))
-#Load it!
-World <- readOGR(file.path(dir_spatial,"ne_10m_coastline/ne_10m_coastline.shp"))
-
-Forty_World<- fortify(World)
-
-base_map <- ggplot() +
-  geom_path(data = Forty_World, aes(x = long,
-                                    y = lat,
-                                    group = group
-  ),
-  color = "black",
-  size = 0.25) +
-  theme_classic() + 
-  labs(list(title = "",
-            x = "Longitude",
-            y = "Latitude")) +
-  #scale_fill_gradientn(colours = pal) +
-  scale_x_continuous(expand=c(0,0)) +
-  scale_y_continuous(expand=c(0,0)) +
-  labs(fill="") + 
-  NULL 
-
-
-
-```
-
-```{r gfw-theme}
-theme_gfw_paper <-  theme(text = element_text(family="Arial", face="bold", size=12),
-        axis.text.x = element_text(size = 12, colour = "black"),
-        axis.text.y = element_text(size = 12, colour = "black"),
-        axis.line.x = element_line(colour = "black", size = .5),
-        axis.line.y = element_line(colour = "black", size = .5),
-        legend.position = "bottom",
-        axis.title.y = element_text(size = 12, margin=margin(0,15,0,0)),
-        axis.title.x = element_text(size = 12, margin=margin(15,0,0,0)),
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        plot.margin = unit(c(1,1,1,1), "cm")
-        )
-
-cont_fill = 'white'#'grey30' #'grey80'
-back_fill =  'white'#'#202A50' #'black' #'#1F2A4F'
-cont_color = 'grey60'#'grey30'
-#color_grad = c( "#414487", "#2A788E", "#22A884", "#7AD151","#FDE725","#FFC04C")
-color_grad = c("#C6DBEF", "#9ECAE1", "#6BAED6","#4292C6" ,"#2171B5", "#084594") #blues
-```
-
-
 Attempting to draw similar maps to SAU data with GFW data. Use known fishing effort data to map out other indicators of industrial threats to these species. 
 
 ```{r compile-gfw-data, eval=FALSE}
 
 cell_size <- "01"
-dir_spatial_csvs <- "../spatial/csvs"
-effort_dir <- "../data/fishing_effort/daily_csvs"
+# cell_size <- "05"
 effort_files <- list.files("../data/fishing_effort/daily_csvs/")
 effort_files <- effort_files[grepl(effort_files, pattern="2016")]
 cell_ids <- read.csv(file.path(dir_spatial_csvs , paste("cell_ids_", cell_size,".txt", sep="")), header=T, col.names = c("cell_id", "lon", "lat"))
@@ -126,111 +78,76 @@ cell_ids <- read.csv(file.path(dir_spatial_csvs , paste("cell_ids_", cell_size,"
 # lat_bin: the southern edge of the grid cell, in 100ths of a degree -- 101 is the grid cell with a southern edge at 1.01 degrees north
 # lon_bin: the western edge of the grid cell, in 100ths of a degree -- 101 is the grid cell with a western edge at 1.01 degrees east
 gfw_2016 <- tibble()
-s <- Sys.time()
-#cols_to_keep <- c("geartype", "flag")
-
-#res parameter gives a rough cell resolution but it might be off by a factor of 2. i.e., 0.25 gives cells of 0.5 by 0.5 
-summarize_gfw <- function(file, cell_res="all", cols_to_keep=NA) {
-  dat <- data.table::fread(file.path(effort_dir,file))
-  #dat <- read_csv(file.path(effort_dir,file), col_types = "Dddccddd")
-
-  #df <- convert_to_centroid(dat)
-  if(cell_res=="all"){
-    df <- dat
-    df$sau_lon <- floor((df$lon)/0.5) * 0.5 #plyr::round_any(df$lon, 0.25, f=round) #Fit GFW grid to coarser SAU grid
-    df$sau_lat<- floor((df$lat)/0.5) * 0.5 #plyr::round_any(df$lat, 0.25, f=round) #Fit GFW grid to coarser SAU grid 
-    df <- df %>%
-      group_by(date, geartype, lat_bin, lon_bin, lat, lon, sau_lon, sau_lat) %>% 
-      summarize(vessel_hours = sum(vessel_hours),
-                fishing_hours = sum(fishing_hours),
-                mmsi_present = sum(mmsi_present))
-  }else if(cell_res==0.5){
-    df <- convert_to_centroid(dat)
-    df <- convert_to_sau(df)
-    df <- df %>%
-          group_by(date, lat, lon, geartype) %>% 
-          summarize(vessel_hours = sum(vessel_hours),
-                    fishing_hours = sum(fishing_hours))
-  } else {
-    res <- cell_res/2
-    df <- convert_to_centroid(dat)
-    df <- convert_to_new_grid(df, res)
-    df <- df %>%
-          group_by(date, lat, lon, geartype) %>% 
-          summarize(vessel_hours = sum(vessel_hours),
-                    fishing_hours = sum(fishing_hours))
-  }
-  return(df)
-}
 
 
-# cell_size <- "05"
-file <- effort_files[100]
+#file <- effort_files[100]
 dat <- data.table::fread(file.path(effort_dir,file))
 summarize_gfw(file, cell_res=as.numeric(cell_size)/10)
 
+gfw_list <- parallel::mclapply(effort_files, summarize_gfw, cell_res=as.numeric(cell_size)/10)
+gfw_2016 <- data.table::rbindlist(gfw_list)
 
-
-#Pretty sure mclapply is faster. With a test of the first 10 it was faster by .5 seconds (~18%)
-s <- Sys.time()
-gfw_list <- parallel::mclapply(effort_files, summarize_gfw, cell_res=as.numeric(cell_size)/10, cols_to_keep=NA)
-# gfw_frame <- bind_rows(gfw_list)
-# gfw_frame1 <- data.table::rbindlist(gfw_list[1:(floor(length(gfw_list)/10))])
-gfw_frame <- data.table::rbindlist(gfw_list)
-
-e <- Sys.time()
-e-s #Got it down to 5.38 minutes for 2016 effort files
-#cell_size <- "001"
-write_csv(gfw_frame, file.path(dir_spatial_csvs, paste("gfw_2016_",cell_size , ".csv", sep="")))
+write_csv(gfw_2016, file.path(dir_spatial_csvs, paste("gfw_2016_",cell_size , ".csv", sep="")))
 
 ```
 
+```{r parse-smaller-resolution-files}
+cell_size <- "01"
+
+effort_files <- list.files(file.path(dir_data, "fishing_effort/daily_csvs/"))
+effort_files <- effort_files[grepl(effort_files, pattern="2016")]
+cell_ids <- read.csv(file.path(dir_spatial_csvs , paste("cell_ids_", cell_size,".txt", sep="")), header=T, col.names = c("cell_id", "lon", "lat"))
+
+tmp <- "tmp"
+dir.create(file.path(dir_spatial_csvs, tmp))
+parse_gfw <- function(file, cell_res="all") {
+  df <- summarize_gfw(file=file, cell_res=cell_res)
+  write_csv(df, file.path(dir_spatial_csvs, tmp, file))
+  }
+parallel::mclapply(effort_files, parse_gfw, cell_res=as.numeric(cell_size)/10)
+
+length(effort_files) == length(list.files("../spatial/csvs/tmp/"))
+gc()
+
+#Compile GFW:
+gfw_2016 <- tibble()
+for (file in effort_files){
+  dat <- data.table::fread(file.path(dir_spatial_csvs, tmp, file))
+  dat <- dat %>% dplyr::select(-date)
+  gfw_2016 <- bind_rows(gfw_2016, dat)
+  gfw_2016 <- gfw_2016 %>%
+    group_by(lat, lon, geartype) %>% 
+    summarize(vessel_hours = sum(vessel_hours),
+              fishing_hours = sum(fishing_hours))
+  print(paste("Processed file: ", file))
+  
+}
+write_csv(gfw_2016, file.path(dir_spatial_csvs, paste("gfw_2016_",cell_size , ".csv", sep="")))
+
+unlink(file.path(dir_spatial_csvs, tmp), recursive = TRUE)
+
+
+```
+
+
+
 ```{r gfw-2016-fishing-effort}
 cell_size <- "01"
-dir_spatial_csvs <- "../spatial/csvs"
-
-gfw_frame <- data.table::fread(file.path(dir_spatial_csvs, paste("gfw_2016_",cell_size , ".csv", sep="")))
-gfw_2016 <- gfw_frame %>% 
+gfw_2016 <- data.table::fread(file.path(dir_spatial_csvs, paste("gfw_2016_",cell_size , ".csv", sep="")))
+gfw_2016 <- gfw_2016 %>% 
   ungroup() %>% 
   group_by(lat, lon) %>% 
   summarize(vessel_hours = sum(vessel_hours),
                     fishing_hours = sum(fishing_hours))
-
-gg <- base_map +
-  geom_tile(data=gfw_2016, aes(x=lon, y=lat, fill=log10(fishing_hours))) +
-  scale_fill_viridis_c("Fishing hours", na.value = NA, limits = c(1, 5), 
-                       breaks=c(seq(1,5,length.out = 4)),
-                       labels = c('1','10', '100','> 1000' ), 
-                       direction = -1)+
-    coord_sf(datum = NA) +
-    theme_gfw_paper +
-    theme(axis.title.x = element_blank(),
-          axis.title.y = element_blank(),
-          axis.text.x = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks = element_blank(),
-          axis.line = element_blank(),
-          panel.background = element_rect(color = NA, fill = back_fill),
-          #legend.position = 'none',
-          legend.direction="horizontal",
-          plot.margin=unit(c(0,-0.5,-0.5,-0.5), 'cm'),
-          legend.text = element_text(size = 6, family = 'Times New Roman'),
-          legend.title = element_text(size = 7, family = 'Times New Roman')) + 
-  NULL
-gg
-
-
 ```
 
 
 
 ```{r data-iucn}
 
-
-dir_data <- "../data"
-dir_rasters <- "../spatial/spp_rasters"
 risk_codes <- read.csv(file.path(dir_data, "risk_code_lookup.csv"), stringsAsFactors = F)
 spat_files <- list.files(file.path(paste(dir_rasters, "_", cell_size, sep="")))
+spat_files <- spat_files[spat_files != "desktop.ini"]
 raster_read <- function(filename){
   id <- gsub(filename, pattern="iucn_sid_", replacement = "")
   id <- gsub(id, pattern=".csv", replacement = "")
@@ -241,10 +158,11 @@ raster_read <- function(filename){
   }
 }
 spat_list <- parallel::mclapply(spat_files, raster_read)
-spat_list <- data.table::rbindlist(spat_list[2:6720])
+spat_list <- bind_rows(spat_list)
+for (n in 1:length(spat_files))
 
 cell_ids <- read.csv(file.path(dir_spatial_csvs , paste("cell_ids_", cell_size,".txt", sep="")), header=T, col.names = c("cell_id", "lon", "lat"))
-cell_id_area <- data.table::fread(file.path(dir_spatial_csvs, paste("cell_id_area_", cell_size,".txt", sep="")))
+cell_id_area <- data.table::fread(file.path(dir_spatial_csvs, paste("cell_id_area_", cell_size,".csv", sep="")))
 
 spat_data <- spat_list %>% 
   left_join(cell_ids, by="cell_id") %>%
@@ -255,11 +173,6 @@ gc()
 
 
 ```{r gfw-gear-type}
-
-dir_output <- "../output"
-#Let's start with trawlers:
-gear <- "trawlers"
-gfw_2016 <- gfw_frame
 gfw_2016$geartype <- gsub(gfw_2016$geartype, pattern="_", replacement=" ")
 gfw_2016$geartype <- gsub(gfw_2016$geartype, pattern="purse seines", replacement="purse seine")
 
@@ -268,9 +181,7 @@ gfw_gear_types <- unique(gfw_2016$geartype)
 text_threats <- read.csv(file.path(dir_data, "narrative_threats_output_tidy.csv"))
 iucn_gear_types <- unique(text_threats$super_code)
 gear_types <- iucn_gear_types[grep(iucn_gear_types, pattern=paste(gfw_gear_types, collapse="|"))]
-
-gear <- "longline"
-
+gear_types <- c(as.character(gear_types), "longline")
 
 for(gear in gear_types){
   gear_species <- text_threats %>%
@@ -293,8 +204,6 @@ for(gear in gear_types){
   write_csv(threat_dat, file.path(dir_output, paste(gear, "_IUCN_threat_", cell_size, ".csv", sep="")))
 }
 
-
-```
 
 ```
 

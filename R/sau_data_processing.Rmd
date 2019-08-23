@@ -8,8 +8,6 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 source("../R/common_fxns.R")
-
-
 packages <- c("tidyverse", 
               "sf", 
               "raster",
@@ -68,62 +66,9 @@ write_csv(allocated_gear_value, file.path(dir_data, "allocated_super_gear_value.
 
 ```
 
-```{r cost-of-fishing}
-
-
-
-```
-
-
-
-
 ```{r eez-shape-file}
-
-non_min_min <- function(x, na.rm=T){
-  if(na.rm){
-    if(length(x)>2){
-    min_value <- min(x)
-    #max_value <- max(x)
-    x <- x[x!=min_value]
-    #x <- x[x!=max_value]
-    return(min(x))
-  } else {
-    return(min(x))
-  }
-  }
-}
-
-    
-non_min_min <- function(x=NA, na.rm=TRUE){
-  #Returns value closest to min value that isn't the min if there is more than two values
-  if(length(na.omit(x))==0){
-    return(min(na.omit(x), 0))
-  } else if(length(unique(x))>2){
-    min_value <- min(x)
-    x <- x[x!=min_value]
-    return(min(na.omit((x))))
-  } else {
-    return(min(na.omit(x)))
-  }
-}
-
-non_max_max <- function(x=NA, na.rm=TRUE){
-  #Returns value closest to max value that isn't the max if there is more than two values 
-  if(length(na.omit(x))==0){
-    return(max(na.omit(x), 0))
-  } else if(length(unique(x))>2){
-    max_value <- max(x)
-    x <- x[x!=max_value]
-    return(max(na.omit(x)))
-  } else {
-    return(max(na.omit(x)))
-  }
-}
-
-
 #cell_size <- "01"
 cell_size <- "05"
-crs_string <- "+init=epsg:4326"
 cell_ids_rast <- raster(file.path(dir_spatial, paste("cell_ids_", cell_size, "_rast.tif", sep="")))
 proj4string(cell_ids_rast) <- CRS(crs_string)
 eez_data_raw <- st_read(file.path(dir_spatial, "sau_eez", "MarineLayerID_2_12_FINAL.shp"))
@@ -187,7 +132,6 @@ write_csv(eez_cell_ids, file.path(dir_spatial, paste("eez_cell_ids_", cell_size,
 
 ```{r cell-id-eezs-all-matches}
 
-crs_string <- "+init=epsg:4326"
 cell_ids_rast <- raster(file.path(dir_spatial, paste("cell_ids_", cell_size, "_rast.tif", sep="")))
 eez_rast <- raster(file.path(dir_spatial, paste("eez_", cell_size, "_rast.grd", sep="")))
 proj4string(cell_ids_rast) <- CRS(crs_string)
@@ -213,7 +157,6 @@ write_csv(eez_cell_ids, file.path(dir_spatial, paste("eez_cell_ids_", cell_size,
 
 ```{r cell-id-eezs-single-match, eval=F}
 
-crs_string <- "+init=epsg:4326"
 cell_ids_rast <- raster(file.path(dir_spatial, paste("cell_ids_", cell_size, "_rast.tif", sep="")))
 eez_rast <- raster(file.path(dir_spatial, paste("eez_", cell_size, "_rast.tif", sep="")))
 proj4string(cell_ids_rast) <- CRS(crs_string)
@@ -233,7 +176,6 @@ write_csv(eez_cell_ids, file.path(dir_spatial, paste("eez_cell_ids_", cell_size,
 ```{r cell-id-water-area}
 #cell_size <- "01"
 cell_size <- "05"
-crs_string <- "+init=epsg:4326"
 cell_ids_rast <- raster(file.path(dir_spatial, "rasters", paste("cell_ids_", cell_size, "_rast.tif", sep="")))
 proj4string(cell_ids_rast) <- CRS(crs_string)
 eez_data_raw <- st_read(file.path(dir_spatial, "sau_eez", "MarineLayerID_2_12_FINAL.shp"))
