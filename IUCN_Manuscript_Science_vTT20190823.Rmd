@@ -182,7 +182,8 @@ Target Journals: Science, Nature, PNAS, Science Advances, Nature Sustainability,
 Potential collaborators:  Casey O'Hara; Ben Halpern      
 
 ## Abstract  
-Many marine species are threatened by harmful interactions with fisheries, but the threats they face are particular to the fishing methods used and are not ubiquitous to fisheries. Therefore, the protection need of these Threatened species  is contingent on their specific threats. Here, we undertake a novel analysis of Threatened marine species to identify their major fisheries threats by fishing method, as well as evaluate conservation-fisheries tradeoffs to identify areas with low (easy wins) and high (fishery-conservation competition) concern for conflict. We undertake this analysis with two spatially explicit databases of fisheries catches and fishing effort by fishing method. Gillnet and longline fisheries had the greatest risk to Threatened spp yet achieve relatively low profits, emphasizing the social and ecological inefficiencies with these gears. The high seas is dominated by areas with little fisheries benefits (relative to the global average), and with ~20% that would represent 'easy wins' for conservation. 
+<!--TT: Could combine first few sentences??, eg: "Many marine species are threatened by harmful interactions with fisheries, but the threats they face are particular to the fishing methods used and are not ubiquitous to fisheries. Therefore, the protection these Threatened species  need is contingent on their specific threats."-->
+Many marine species globally are threatened by fishing pressure and harmful interactions with fisheries. However, the threats they face are particular to the fishing methods used and are not ubiquitous to fisheries. Therefore, the protection these Threatened species likely need is contingent on their threats and not necessarily related to all fisheries. Here, we undertake a novel analysis of Threatened marine species to identify their major fisheries threats by fishing method <!--TT: I think you need something on the pervasive issues of conservation vs. fisheries tradeoffs since it is a central component of your paper: "..., as well as evaluate conservation-fisheries tradeoffs to identify areas with low (easy wins) and high (fishery-conservation competition) concern for conflict."--> and overlap this with two spatially explicit databases of fisheries catches and fishing effort by fishing method. <!--TT: Insert text on gear results? "Gillnet and longline fisheries had the greatest risk to Threatened spp yet achieve relatively low profits, emphasizing the social and ecological inefficiencies with these gears. "-->The high seas is dominated by areas with little fisheries benefits (relative to the global average), and with ~20% that would represent 'easy wins' for conservation. 
 
 Keywords: fishing method, IUCN, fishing pressure, conservation
 
@@ -211,11 +212,14 @@ gear_threat_num <- prettyNum(gear_threat_num, big.mark = ",")
 
 ```
 
-Fishing is a major threat to many marine species globally. However, different fishing gears are heterogeneous in their spatial extent and their impacts on different species. Therefore, treating different fisheries homogenously with regard to their spatial management likely causes unneeded conflict between fisheries and conservation priorities, and may impose too high costs without necessarily achieving their intended conservation benefits. Here, we aim to clarify this through a greater examination of fisheries threats related to specific fishing gears and their spatial overlap with species of conservation concern. Recent studies have highlighted the spatial extent of fisheries [@Kroodsma2018a; @Amoroso2018], as well as the fisheries risk to species of conservation concern [@Queiroz2019]. While fisheries pose obvious conservation concerns for both targeted and incidentally captured species [@Lewison2004], they also provide livelihoods and food security to millions and billions, respectively [@FAO2018]. Therefore, the goals of fisheries and conservation must be balanced to minimize the costs and maximize the benefits where possible. 
+Fishing is a major threat to many marine species globally. However, different fishing gears are heterogeneous in their spatial extent and their impacts on different species. Therefore, treating different fisheries homogenously with regard to their spatial management likely causes unneeded conflict between fisheries and conservation priorities, and may impose too high costs without necessarily achieving their intended conservation benefits. Here, we aim to clarify this through a greater examination of fisheries threats related to specific fishing gears and their spatial overlap with species of conservation concern. Recent studies have highlighted the spatial extent of fisheries [@Kroodsma2018a; @Amoroso2018], as well as the fisheries risk to species of conservation [@Queiroz2019]. While fisheries pose obvious conservation concerns for both targeted and incidentally captured species, they also provide livelihoods and food security to millions and billions, respectively [@FAO2018]. Therefore, the goals of fisheries and conservation must be balanced to minimize the costs and maximize the benefits where possible. 
 
-Previous analyses have demonstrated these trade-offs in the Northern South China Sea [@Cheung2008]. Although win-win scenarios are desirable, they are often only possible in overly simplified models that do not account for all variables such as employment for fishers [@Cheung2008] or spillover impacts to other areas of importance [@McShane2011]. It is therefore important to consider the different scales at which these conservation plans act and the trade-offs between social and ecological outcomes in many plans [@McShane2011]. In addition, greater consideration of heterogeneity of fisheries can lead to more positive fishery outcomes without compromising conservation goals [@Klein2009]. 
+Previous analyses have demonstrated these trade-offs in the Northern South China Sea [@Cheung2008]. Although win-win scenarios are desirable, they are often only possible in overly simplified models that do not account for all variables such as employment for fishers [@Cheung2008] or spillover impacts to food security in the case of biofuels [@McShane2011] <!--TT: This latter part of the sentence is confusing, biofuels?-->. It is therefore important to consider the different scales at which these conservation plans act and the trade-offs between social and ecological outcomes in many plans [@McShane2011]. 
 
-Here, we establish the first estimate of large-scale conservation trade-offs when protecting species from their major fishing gear threats. This analysis is based off `r gear_threat_num` marine species included in the IUCN Red List with specific fishing gears listed as threats. We combine these data with a spatial catch by gear fisheries database [@Pauly2015], and a spatial industrial fishing effort database [@Kroodsma2018a]. We use gear threats by species described by the IUCN, and weight IUCN conservation status on a linear scale (in line with [@OHara2019]) to derive a weighted threat score (WTS) for all marine areas of the world. We then combine this with fisheries catch and profit data by gear type, as well as fishing effort data to highlight areas of trade-offs and synergies between fisheries conservation. A major aim is to highlight areas with low-cost trade-offs between fisheries and conservation, and areas of high conservation concern that are also highly important to fisheries where there is competition between fisheries and conservation objectives. 
+Here, we establish the first estimate of large-scale conservation trade-offs when protecting species from their major fishing gear threats. This analysis is based off `r gear_threat_num` marine species included in the IUCN Red List with specific fishing gears listed as threats. We combine these data with a spatial catch by gear fisheries database [@Pauly2015], and a spatial industrial fishing effort database [@Kroodsma2018a]. We use gear threats by species described by the IUCN, and weight IUCN conservation status on a linear scale (in line with [@OHara2019]) to derive a weighted threat score <!--TT: "(WTS)"--> for all marine areas of the world. We then combine this with fisheries catch and profit data by gear type, as well as fishing effort data to highlight areas of trade-offs and synergies between fisheries conservation. A major aim is to highlight areas with low-cost trade-offs between fisheries and conservation, and areas of high conservation concern that are also highly important to fisheries where there is competition between fisheries and conservation objectives. 
+<!--TT: True! Counteracting goals for society, yet there is detailed literature on how our human-centric goals for 'ocean health' need to include both of these: conservation for increased biodiversity, and equitable and sustainable (artisanal) fishing opportunities to support society. Could be a good discussion point-->. 
+
+<!-- RS: Include a brief review of earlier efforts at doing at doing this kind of analysis, e.g. Cheung and Sumaila)-->
 
 ## Results
 
@@ -384,11 +388,11 @@ if(fig_output==TRUE){
 ```
 
 ### Spatial overlap of fisheries and marine species
-Industrial longlines fisheries are spread throughout the global ocean while trawlers are concentrated in coastal areas and into the northern Atlantic (Figure \@ref(fig:map-grid)). When compared to where species are at risk from these gears, we see hotspots in the WTS in the Mediterranean Sea, an area with historically high fishing pressure with many stocks currently below sustainable biomass and fishing levels [@Froese2018].
+Industrial longlines fisheries are spread throughout the global ocean while trawlers are concentrated in coastal areas and into the northern Atlantic (Figure \@ref(fig:map-grid)). When compared to where species are at risk from these gears, we see hotspots in the WTS in the Mediterranean Sea<!--TT: ", an area with historically high fishing pressure with many stocks currently below sustainable biomass and fishing levels [@Froese et al., 2018]."-->.
 
-We find substantial overlap between fisheries activity (as determined by AIS fishing effort) and the occurrence and threat level of taxa where this fishing gear is a threat (Fig SXX)
+We find substantial overlap between fisheries activity (as determined by AIS fishing effort) and the occurrence and threat level of taxa where this fishing gear is a threat (Fig SXX)<!--TT: I wonder if it is necessary to include a quantitative measure of this? While it may look to be visually obvious, there appear to be weird empty (white) coastal spaces for longline. 
 
-<!--TT: I wonder if it is necessary to include a quantitative measure of this? While it may look to be visually obvious, there appear to be weird empty (white) coastal spaces for longline. 
+WHICH NOW gets me thinking of whether there also needs to be a current 'WTS-hours' indicator for a measure of current threat in that region? I guess it would be similar to Quieroz, but it would show the areas with high threat risk, either due to spp IUCN listing or fishing intensity. Just adding to the extensive results...........
 -->. However, we also find many areas where the current fishing effort and catches are low but still likely presenting a threat to species in that area (Fig SXX). 
 Longline gears are widely distributed with relatively low effort, whereas trawlers are much more concentrated in coastal areas. Trawlers also have a degree of overlap with species of concern in China's and Europe's coastal waters (Figure \@ref(fig:map-grid)). 
 
@@ -397,6 +401,12 @@ Longline gears are widely distributed with relatively low effort, whereas trawle
 
 Also, I think that the resolution of the maps is a bit low to see the threat impacts around the coastal margins. Would a panel of maps showing different regions (N Atlantic, China, SE Asia) be feasible? Maybe a bit tough with the different layers PLUS region mapping. If your main message is the WTS (indirectly a measure of spp occurence by gear) and $/WTS, then you could put the catch and spp occurence maps in supp mat. 
 -->
+<!-- 
+Old text:
+
+In Figure \@ref(fig:map-grid), the profit (2010 real USD) per weighted score (by gear type) shows high values in red indicating areas with large fisheries value and low conservation value, and in blue the opposite of areas with low fisheries value in comparison to their conservation value. Interestingly, many of the areas with the lowest hanging fruit are in the high seas (Figure \@ref(fig:map-grid)). This shows areas where it will be more difficult (red) to protect from the relevant fishing gear due to the high value of resource that is currently being used there. In contrast, it highlights areas of potential easy wins for conservation (blue) to protect areas of high conservation concern with currently low levels of fisheries profits. 
+-->
+<!-- RS: Difficult to read the graph labels.-->
 
 ```{r harmonized-threats-data}
 files <- list.files(dir_output)[grepl(list.files(dir_output), pattern="_SAU_IUCN_threat_05.csv")]
@@ -455,13 +465,13 @@ wts_fei_plot <- function(gear=NA, cell_size="01"){
          subtitle = str_to_sentence(gear), 
            x = "Longitude",
          y = "Latitude") +
-    # scale_fill_viridis_c() + 
-    scale_fill_gradientn(colors = pal,
-                         # trans="log10",
-                         breaks=c(0, 5, 10, 15, 20, 25),
-                         labels=c("0", "5", "10", "15", "20", "25"),
-                         limits= c(-1, 26)
-    ) +
+    scale_fill_gradientn(colors = pal 
+                         #trans="log10", 
+                         
+                        # breaks=c(0.1, 1, 10, 100), 
+                        #  labels=c("0.1", "1", "10", "100"), 
+                        #  limits= c(0.01, 200)
+                        ) + 
     NULL
   return(wts_plot)
 }
@@ -477,9 +487,7 @@ gfw_fei <- function(gear=NA, cell_size="01"){
     geom_tile(data=effort_dat, 
               aes(x=lon, y=lat, fill=fishing_hours)) +
     labs(fill="Fishing hours", x="Longitude", y="Latitude") + 
-    scale_fill_gradientn(colors=pal,  
-    #scale_fill_viridis_c(option = "magma", direction=-1,
-                         trans="log10", 
+    scale_fill_gradientn(colors = pal, trans="log10", 
                         breaks=c(0.1, 10, 1000,  100000), 
                          labels=c("0.1", "10", "1000",  "100000"), 
                          limits= c(-10, 1000000)) + 
@@ -497,52 +505,21 @@ max_val <- 10000
 min_val <- 0.001 
 
 ll_wts <- wts_fei_plot(gear="longline")
-# ggsave(plot=ll_wts, file.path(dir_figs, "ll_wts_zissou.png"), dpi=900, width=10, height=5)
 bt_wts <- wts_fei_plot(gear="trawlers")
 ll_fei <- gfw_fei(gear="longline")
-# ggsave(plot=ll_fei, file.path(dir_figs, "ll_fei_viridis.png"), dpi=900, width=10, height=5)
-# ggsave(plot=ll_fei, file.path(dir_figs, "ll_fei_magma.png"), dpi=900, width=10, height=5)
 bt_fei <- gfw_fei(gear="trawlers")
 
-#Grab legend from plots and then remove for first column to expand area. 
-wts_legend <- cowplot::get_legend(ll_wts)
-fei_legend <- cowplot::get_legend(ll_fei)
-
-ll_wts <- ll_wts + theme(legend.position="none") + labs(x="")
-bt_wts <- bt_wts + theme(legend.position="none") + labs(x="", y="")
-ll_fei <- ll_fei + theme(legend.position="none") 
-bt_fei <- bt_fei + theme(legend.position="none") + labs(y="")
-
-
-
-# map_grid <- cowplot::plot_grid(
-#   ll_wts,
-#   bt_wts,
-#   ll_fei,
-#   bt_fei,
-#   align = "v",
-#   rel_widths = c(1,1,1,1),
-#   rel_heights = c(1,1,1,1),
-#   ncol = 2,
-#   labels="AUTO"
-#   )
-# print(map_grid)
-# if(fig_output==TRUE){
-#   ggsave(file.path(dir_manuscript_figs, "map-grid.png"), dpi=900, width=20, height=12)
-# }
 
 map_grid <- cowplot::plot_grid(
   ll_wts,
   bt_wts,
-  wts_legend,
   ll_fei,
   bt_fei,
-  fei_legend,
   align = "v",
-  rel_widths = c(1,1,0.25,1,1,0.25),
-  rel_heights = c(1,1,1,1,1,1),
-  nrow = 2,
-  labels= c("A", "B", "", "C", "D", "")
+  rel_widths = c(1,1,1,1),
+  rel_heights = c(1,1,1,1),
+  ncol = 2,
+  labels="AUTO"
   )
 print(map_grid)
 if(fig_output==TRUE){
@@ -552,6 +529,8 @@ if(fig_output==TRUE){
 
 Here, we present a harmonized view of areas of fisheries concern across gear types (Figure \@ref(fig:harmonized-gear-map-iucn)). Although similar to other expected areas of concern for biodiversity hotspots [@OHara2019] and fisheries pressure [@Pauly2015; @Kroodsma2018a], our analysis is specific to the marine species' specific fishing gear related threats. Areas with multiple gears are more likely to have higher scores as there is more exposure to fishing gear related threats. The highest weighted threat scores occur in the Mediterranean Sea and off the coast of East Asia down to Australia. These areas with highest concern are a combination of highly biodiverse areas, that have a high average threat status of the species found their, and with many fishing gears used that are a potential threat to these species.  
 
+<!-- RS: Pressure on the Australian coast will be a bit surprising to many – can you explain why this likely true? -->
+<!--TT: The harmonized graph could also include the WTS*fishing hours?-->
 
 ```{r harmonized-gear-map-iucn, fig.cap="Weighted threat harmonized across gear types", fig.width=8, fig.height=9}
 harmonized_threats <- bind_rows(harmonized_list)
@@ -571,35 +550,35 @@ harmonized_map1 <- base_map +
                           breaks=c(0.1, 1, 10, 100), labels=c("0.1", "1", "10", "100"),
                           na.value=null_colour) +
   NULL
-harmonized_map1
-if(fig_output==TRUE){
-  ggsave(file.path(dir_manuscript_figs, "harmonized-gear-map-iucn.png"), dpi=900, width=8, height=5)
-}
+#harmonized_map1
+# if(fig_output==TRUE){
+#   ggsave(file.path(dir_manuscript_figs, "harmonized-gear-map-iucn.png"), dpi=900, width=8, height=5)
+# }
 
 #Now make map where SAU catch overlaps with that gear type:
-# harmonized_threats <- bind_rows(harmonized_list)
-# harmonized_threats <- harmonized_threats %>% 
-#   filter(catch>0) %>% 
-#   group_by(lon, lat) %>% 
-#   summarize(catch=sum(catch, na.rm=TRUE),
-#             n=sum(n, na.rm=TRUE),
-#             weighted_score=sum(weighted_score, na.rm=TRUE)) %>% 
-#   ungroup() %>% 
-#   mutate(weighted_score_norm = 100*(weighted_score/max(weighted_score)))
-# harmonized_map2 <- base_map + 
-#     geom_tile(data=harmonized_threats, 
-#               aes(x=lon, y=lat, fill=weighted_score, width=0.5, height=0.5)) +
-#     labs(fill="Log (Weighted threat\nscore)", x="Longitude", y="Latitude") +
-#   scale_fill_gradientn(colors = pal, trans="log10", 
-#                           breaks=c(0.1, 1, 10, 100), labels=c("0.1", "1", "10", "100"),
-#                           na.value=null_colour) +
-#   NULL
-# #harmonized_map2
-# 
-# cowplot::plot_grid(harmonized_map1, harmonized_map2, align="v", ncol=1)
-# if(fig_output==TRUE){
-#   ggsave(file.path(dir_manuscript_figs, "harmonized-gear-map-iucn-panel.png"), dpi=900, width=8, height=9)
-# }
+harmonized_threats <- bind_rows(harmonized_list)
+harmonized_threats <- harmonized_threats %>% 
+  filter(catch>0) %>% 
+  group_by(lon, lat) %>% 
+  summarize(catch=sum(catch, na.rm=TRUE),
+            n=sum(n, na.rm=TRUE),
+            weighted_score=sum(weighted_score, na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  mutate(weighted_score_norm = 100*(weighted_score/max(weighted_score)))
+harmonized_map2 <- base_map + 
+    geom_tile(data=harmonized_threats, 
+              aes(x=lon, y=lat, fill=weighted_score, width=0.5, height=0.5)) +
+    labs(fill="Log (Weighted threat\nscore)", x="Longitude", y="Latitude") +
+  scale_fill_gradientn(colors = pal, trans="log10", 
+                          breaks=c(0.1, 1, 10, 100), labels=c("0.1", "1", "10", "100"),
+                          na.value=null_colour) +
+  NULL
+#harmonized_map2
+
+cowplot::plot_grid(harmonized_map1, harmonized_map2, align="v", ncol=1)
+if(fig_output==TRUE){
+  ggsave(file.path(dir_manuscript_figs, "harmonized-gear-map-iucn-panel.png"), dpi=900, width=8, height=9)
+}
 ```
 
 
@@ -643,22 +622,29 @@ summary_tab <- density_data %>%
 bt_profit <- round(summary_tab %>% filter(super_code=="bottom trawl") %>% pull(profit_km2),0)
 bt_risk <- summary_tab %>% filter(super_code=="bottom trawl") %>% pull(biodiv_risk)
 bt_n <- summary_tab %>% filter(super_code=="bottom trawl") %>% pull(n)
+# bt_profit_score <- summary_tab %>% filter(super_code=="bottom trawl") %>% pull(profit_km2_per_weight)
+
 ll_profit <- round(summary_tab %>% filter(super_code=="longline") %>% pull(profit_km2),0)
 ll_risk <- summary_tab %>% filter(super_code=="longline") %>% pull(biodiv_risk)
-
+# ll_profit_score <- summary_tab %>% filter(super_code=="longline") %>% pull(profit_km2_per_weight)
 
 
 summary_tab <- summary_tab %>% 
   mutate(super_code = str_to_sentence(super_code))
-colnames(summary_tab) <- c("Gear type", "Profit ($/km^2^)", "Number of species", "Weighted Threat Score", "Biodiversity Risk Score")
+colnames(summary_tab) <- c("Gear type", "$/km^2^", "Number of species", "Weighted Threat Score", "Biodiversity Risk Score")
 
 
 ```
 
 Globally, bottom trawl fisheries average fisheries profits are \$`r toString(bt_profit)` per km^2^ (Table \@ref(tab:gear-summary-table)). However, they occur in cells with an average of `r toString(bt_n)` species at risk to this gear, with an average biodiversity risk score of Near Threatened (`r toString(bt_risk)`). However, their generally high value catches make them perform relatively well overall. In contrast, longline fisheries have low profits per area occupied (\$`r toString(ll_profit)`) as they occur over a large spatial area. While they operate in areas with a similar biodiversity risk score as bottom trawl fisheries (`r toString(ll_risk)`), they do so with much lower returns meaning they produce less fisheries profits for their relative conservations risk (weighted threat score) than bottom trawl fisheries. Interestingly, small-scale fisheries and their gears perform similarly to bottom trawl fisheries on a revenue per weighted threat score metric. 
 
+<!--TT: Is $/km2 a reasonable measure? This is similar to the Kroodsma-Amaroso scale issue on the resolution of the maps; but maybe if it's all relative to the other gears then is it fine? 
+
+Should also indicate the mean values are by 0.5x0.5 cell-->
+
+
 ```{r gear-summary-table}
-knitr::kable(summary_tab, caption= "Average measures of fisheries conservation concern and profit by gear type at a 0.5 by 0.5 degree scale.")
+knitr::kable(summary_tab, caption= "Summary measures of fisheries conservation concern and profit generated by gear type at a 0.5 by 0.5 degree scale.")
 ```
 
 If we consider each cell an independently managed grid, we can examine the trade-offs required in each based on their fisheries profits and conservation value (Figure \@ref(fig:conceptual-figure-gears)). We find that although bottom trawl fisheries operate in many cells of conservation concern (high 'Weighted threat score' values), they are also generating substantial profits from these fisheries. Gillnets, alternatively, have a large group of cells that are below the median value for fisheries profits and have high weighted threat scores. Pelagic trawls have fairly low weighted threat scores overall and thus the reduction in their use may not lead to large conservation gains. 
@@ -908,7 +894,9 @@ if(fig_output==TRUE){
 ```
 
 ### Protecting the high seas 
-Areas beyond national jurisdiction (i.e., the high seas) have recently received increased attention for their protection for biodiversity and fishery gains [@Sumaila2015a; @White2014], while leading to little losses in terms of food security [@Schiller2018]. According to our framework, the high seas have cells in all four quadrants of our conceptual figure, but there is a large bias towards "Areas of low concern" and "Easy wins" (Figure \@ref(fig:high-seas)). This confirms earlier analysis of the lack of importance of high seas fisheries, and although the high seas is dominated by areas of low concern, it has vast amounts that fall into 'Easy wins' with very few cells in fishery prioritization or fishery competition. Therefore, the question may be changed from which parts of the high seas should we protect, to which parts of the high seas should remain as fishing areas [@Walters1998] if any? 
+Areas beyond national jurisdiction (i.e., the high seas) have recently received increased attention for their protection for biodiversity and fishery gains [@Sumaila2015a; @White2014], while leading to little losses in terms of food security [@Schiller2018]. According to our framework, the high seas have cells in all four quadrants of our conceptual figure, but there is a large bias towards "Areas of low concern" and "Easy wins" (Figure \@ref(fig:high-seas)). This confirms earlier analysis of the lack of importance of high seas fisheries, and although the high seas is dominated by areas of low concern, it has vast amounts that fall into 'Easy wins' with very few cells in fishery prioritization or fishery competition. Therefore, the question may be changed from which parts of the high seas should we protect, to which parts of the high seas should remain as fishing areas [@Walters1998]? 
+
+<!-- RS: Another question which some have raised earlier is whether we should fish in the high seas at all. I think we should raise this question here too.  -->
 
 <!--TT: Is your figure y-axis supposed to be catch and not profit?-->
 
@@ -1004,7 +992,9 @@ if(fig_output==TRUE){
 
 
 ## Discussion
-Previous research has focused on potential trade-offs between fisheries and conservation and where we can search for win-win situations in these two aims. While it has been shown that often times there are benefits to reducing fisheries capacity and fishing to both fisheries [@Sumaila2012] and conservation [@Burgess2018], these benefits are not shared evenly. Reductions in fishing capacity often mean reductions in fishing jobs [@Cheung2008]. In addition, closing areas to fisheries can often have similar effects forcing some fishers out with an often unequal distribution of benefits and costs between different sectors and fisheries [@Gill2019; @Cinner2014]. 
+
+<!-- Start from something broader here. Cite Cheung and Sumaila on MPAs?  -->
+Previous research has focused on potential trade-offs between fisheries and conservation and where we can search for win-win situations in these two aims. While it has been shown that often times there are benefits to reducing fisheries capacity and fishing to both fisheries [@Sumaila2012] and conservation [@Burgess2018], these benefits are not shared evenly. Reductions in fishing capacity often mean reductions in fishing jobs [@Cheung2008]. In addition, closing areas to fisheries can often have similar effects forcing some out while potentially leaving a bigger pie for those left to share [REF]. 
 
 While [@OHara2019] highlighted the areas for future conservation protection for MPAs, we identify the areas that would also meet with major or lesser fisheries overlap and thus competition. In these areas, we assume the placement of MPAs would be more contentious due to the reliance on these natural resources. We also highlight areas with the lowest fisheries profits trade-offs for the most conservation protection. 
 
@@ -1016,16 +1006,18 @@ AHH I see you have changed it to cons. pri. below!-->
 <!--TT: ^^ True, although much of the coastal fishing areas will remain the same at this resolution, especially with substrate specific species. The only changes in fishing would be in the high seas (pelagic spp, conditions, etc), or any management reform. -->
 However, the number of cells that are categorized to be 'conservation prioritization' or 'easy wins' dwarfs the number of importance to fisheries (both 'fishery prioritization' and 'competition'). Therefore, while there are likely gains to be made from closing the high seas to fishing, marine protected areas placement should continue to focus on areas of high conservation concern and rich biodiversity found more frequently within the coastal margins of EEZs and those of high conservation value within the high seas. 
 
-<!--TT: Maybe a paragraph on the application of these results? Some of the conclusions for conserving easy win areas vs addressing 'competition' areas might be broad and difficult to implment. But there are some applications for broad conservation initiatives (ie. high seas), while your methods present an effective tool to identify concering areas that might compromise conservation or fisheries.-->
-This analysis highlights at a broad scale where fisheries or conservation should be prioritized, and where there are competing aims between these areas. Areas close to shore. In addition, this adds a layer to existing MPA discussions that may lead to less contentious implementation of MPAs where certain fisheries can co-exist depending on the MPA goals (species conservation versus resource conservation) and weighted threat score. 
-
 Our study may underestimate the impact of some fishing gears based on the descriptions of threats and use for each IUCN species. However, this is unlikely to be biased towards particular fishing methods as the threats generally highlight all known (fisheries) threats. In addition, as Data Deficient (DD) species are given a risk score of 0, we likely underestimate the risk to these species. For example, a quarter of Chondrichthyes (sharks, rays, and chimaeras) species currently categorized as data deficient were predicted to be Threatened [@Dulvy2014].
 
-It is important to caveat our study knowing that we cannot fully account for the current extent of human's usage of the oceans, and this study has focused on fisheries, and mainly large-scale fisheries for fishing effort <!--TT: Is the fishing effort data pretty for large-scale mostly?-->. Small-scale fisheries are critical to coastal livelihoods across the world and must not be compromised by overly broad conservation initiatives, but instead included when implementing actions to improve aspects of ocean health (e.g. [@Halpern2012]). 
+It is important to caveat our study knowing that we cannot fully account for the current extent of human's usage of the oceans, and this study has focused on fisheries and mainly large-scale fisheries <!--TT: Is the fishing effort data pretty for large-scale mostly?-->. Small-scale fisheries are critical to coastal livelihoods across the world and must not be compromised by overly broad conservation initiatives, but instead included when implementing actions to improve aspects of ocean health (e.g. [@Halpern2012]). 
+
+<!-- Are we really achieving effective overly broad conservation?-->
+<!--TT: Maybe a paragraph on the application of these results? Some of the conclusions for conserving easy win areas vs addressing 'competition' areas might be broad and difficult to implment. But there are some applications for broad conservation initiatives (ie. high seas), while your methods present an effective tool to identify concering areas that might compromise conservation or fisheries.-->
 
 In addition, while we use catch and fisheries profits as a proxy for importance, these are not adjusted for their importance to the country (i.e., percentage of GDP from fisheries revenues or percentage of animal protein from locally caught fish), nor do they take into account differences in purchasing power parity where $1000 of fisheries profits is much more valuable in poorer countries than in industrialized countries. 
 
 <!--TT: Other points to consider
+I'm not sure if you included effort data into the metrics you calculated, but it would be interesting to discuss the CPUE effects on the data here. Example, areas with high revenues but lower CPUE could also be leverage for management as an 'easier' win for conservation.  
+
 Also, I'm not sure if you could include a measure of uncertainty in these estimates, especially for evaluating differences between aggregated measures (eg. gear types, eezs).
 
 One thing I found interesting is the lower WTS scores for bottom trawling compared to longlining. I guess it's a mathematical result of the IUCN status and the number of spp, suggesting that longlining could affect more-threatened spp (and/or more total spp) than bottom trawling. I wonder how habitat destruction plays into the IUCN text when including threats/impacts. 
@@ -1035,7 +1027,7 @@ One thing I found interesting is the lower WTS scores for bottom trawling compar
 Our results highlight areas of high conservation concern for particular fishing gears, and areas of high overlap with multiple fishing gear threats and multiple species of conservation concern. We also highlight areas with the potential for low-cost fishing closures leading to maximum protection of species negatively affected by these fishing gears. Interestingly, gillnet fisheries represent a greater opportunity than the often demonized bottom trawl fisheries according to our analysis due to the high fisheries profits derived from many bottom trawl catches. This analysis can help inform future conservation planning with areas of low-cost trade-offs in comparison to areas with much higher costs for equal conservation benefits. 
 
 ## Acknowledgements
-TC acknowledges funding support of the Social Sciences and Humanities Research Council of Canada and the Four Year Fellowship from the University of British Columbia. 
+TC acknowledges funding support of the Social Sciences and Humanities Research Council of Canada and the 4-Year fellowship from the University of British Columbia. 
 
 
 ## References

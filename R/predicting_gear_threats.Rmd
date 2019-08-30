@@ -1,0 +1,78 @@
+---
+title: "predicting_gear_threats"
+author: "Tim"
+date: "August 23, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Can we predict which gears are likely to threaten species based on their similarities to other species? I.e., Can we move from actual threats to 'potential threats'? 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo =TRUE)
+ipak <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new.pkg)) 
+    install.packages(new.pkg, dependencies = TRUE)
+  sapply(pkg, require, character.only = TRUE, quietly=TRUE)
+}
+
+packages <- c("tidyverse", 
+              "wesanderson",
+              "bookdown",
+              "knitr",
+              "randomForest", 
+              "rfishbase", 
+              "aquamapsdata",
+              "purrr",
+              "DT",
+              "rpart",
+              "rpart.plot",
+              "naivebayes",
+              "e1071",
+              "fastDummies",
+              "caret", 
+              "pROC"
+              )
+ipak(packages)
+dir_data <- "../data"
+dir_spatial <- "../spatial"
+dir_spatial_csvs <- "../spatial/csvs"
+dir_rasters <- "../spatial/spp_rasters"
+dir_output <- "../output"
+dir_figs <- "../figs"
+
+set.seed(7)
+```
+
+## Data
+
+```{r data}
+
+#Establish list of marine species 
+all_species <- data.table::fread(file.path(dir_data, paste( "iucn_species_list_", api_version,".csv", sep="")))
+
+marine_species <- read.csv(file.path(dir_data, paste( "spp_marine_from_", api_version,".csv", sep="")))
+#### Align with threats and narrative text: ####
+species_threats <- read.csv(file.path(dir_data, "species_fishing_threats.csv"), stringsAsFactors = F)
+colnames(species_threats) <- gsub(colnames(species_threats), pattern="result\\.", replacement="")
+risk_codes <- read.csv(file.path(dir_data, "risk_code_lookup.csv"), stringsAsFactors = F)
+species_threats <- species_threats %>% left_join(risk_codes, by=c("category"="code"))
+species_threats <- species_threats %>%
+  dplyr::select(iucn_sid, class_name, scientific_name, code_current, cat_score) %>%
+  unique()
+
+
+# threatened_status <- c("VU", "CR", "EN")
+# species_threats <- species_threats %>% filter(code_current %in% threatened_status)
+text_threats <- read_csv(file.path(dir_data, "narrative_threats_output_tidy.csv"))
+
+
+
+```
+

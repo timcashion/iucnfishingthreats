@@ -116,11 +116,14 @@ model_data <- model_data %>%
   mutate(super_code = fct_relevel(super_code, "bottom trawl", after=0)) %>% 
   mutate(Scientific_name = str_to_lower(Scientific_name))
 
-mod <- lfe::felm(log(Price) ~ super_code + Scientific_name + Year + Country + log(Tonnes),
-                 data=model_data)
+mod <- lfe::felm(log(Price) ~ super_code + log(Tonnes) |Scientific_name + Year + Country,
+                 data=model_data, exactDOF=TRUE)
 
 plot(model_data$Year, mod$residuals)
 
+hist(mod$residuals)
+
+summary(mod)
 ```
 
 

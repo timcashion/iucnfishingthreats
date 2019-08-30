@@ -12,6 +12,9 @@ always_allow_html: yes
 biblio-style: "apalike"
 ---
 
+<!-- Note: Cost is not spatialized so that bottom trawling far offshore by the same country costs the same as bottom trawling on shore. 
+-->
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = F)
 source(here::here("R", "common_fxns.R"))
