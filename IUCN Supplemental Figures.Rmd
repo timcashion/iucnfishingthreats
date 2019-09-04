@@ -176,6 +176,17 @@ base_map <- ggplot() +
 ## Supplemental Results
 
 
+#### Habitat modification
+```{r}
+text_threats <- read_csv(file.path(dir_data, "narrative_threats_output_tidy.csv"))
+trawl_unspec <- text_threats %>% filter(super_code =="trawl unspec") %>% nrow()
+trawl_hab <- read_csv(file.path(dir_data, "trawl_habitat_output.csv"))
+num_trawl_hab <- nrow(trawl_hab)
+num_dynamite <- sum(trawl_hab$dynamite, na.rm=TRUE)
+num_destructive <- sum(trawl_hab$destructive, na.rm=TRUE)
+
+```
+Of the `r prettyNum(trawl_unspec, big.mark=",")` marine species that have trawling ('trawls unspecificed') identified as a threat, only `r toString(num_trawl_hab)` have habitat modification also identified as a threat. When reviewing the threat description for these species, many of them are identified as two separate threats. `r toString(num_destructive)` of these have 'destructive fishing practices' identified as a threat. 
 
 ## Supplemental Figures
 

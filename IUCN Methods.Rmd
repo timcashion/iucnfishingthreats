@@ -188,7 +188,7 @@ $P_{i} = \sum_{x=1}^{x} (L_{xyi} * P_{x} * M_{y}) - (L_{xyi} * C_{y})$ (2)
 
 Both catch and profits are expressed throughout in tonnes/km^2^ and $/km^2^ calculated based on the water area in each 0.5° by 0.5° cell.
 
-We also used a fishing effort data that captures a substantial portion of *industrial* fleets and is available at a finer resolution [@Kroodsma2018a]. This has previously been used to explore the spatial extent of fisheries globally [@Kroodsma2018a; @Amoroso2018]. This allowed a more granular scale of current fishing effort against current biological hotspots of conservation concern. In addition, this dataset has some fishing gear types categorised by their fishing behaviour but with varying levels of specificity when compared to the *Sea Around Us* dataset. GFW data was accessed through their web platform. The daily fishing effort (measured in fishing hours per country) was aggregated by gear and spatial area over the year for 2016 (the most recent year available at the time of the study). We were not concerned with seasonal variation nor the fishing country and so this information was excluded. 
+Our analysis focuses on the trade-offs among different fisheries with specific gear types. As such, we did not use the Global Fishing Watch data where gear types are often aggregated (bottom and pelagic trawlers grouped together as trawlers), or only represent a narrow subset of the fleet (e.g., drifting longlines) [@Kroodsma2018a]. 
 
 ### Analysis
 
@@ -238,9 +238,9 @@ $Biodiversity Risk Score_{cell} =  \frac{1}{N_{cell}}\sum_{i=1}^{N_{cell}}s_{i}$
 
 Where $N$ is number of assessed species in the $cell$ , $s_{i}$ is the conservation status ($s$) of species ($i$). All biodiversity risk scores are thus values of 0-1 that roughly correspond to the linear IUCN Category scale described above (Table \@ref(tab:risk-code-lookup)). 
 
-Second, we adapt this metric so that it isn't normalised to the mean threat in the cell but representative of scale (number of species) and severity (IUCN Category) of threat. This metric is named the weighted threat score (WTS) defined as the sum of species present multiplied by their threat category numeric score, but is not divided by the number of species in a given cell. We do not normalise by this to highlight areas of conservation concern based on the number of species in that cell in addition to their threat status. 
+Second, we adapt this metric so that it isn't normalised to the mean threat in the cell but representative of scale (number of species) and severity (IUCN Category) of threat. This metric is named the weighted threat score defined as the sum of species present multiplied by their threat category numeric score, but is not divided by the number of species in a given cell. We do not normalise by this to highlight areas of conservation concern based on the number of species in that cell in addition to their threat status. 
 
-$WTS_{i,g} = \sum_{i=1}^{N_{cell}}s_{i}$ (4)   
+$WeightedThreatScore_{i,g} = \sum_{i=1}^{N_{cell}}s_{i}$ (4)   
 
 
 ```{r}
@@ -259,14 +259,15 @@ $WTS_{i,g} = \sum_{i=1}^{N_{cell}}s_{i}$ (4)
 # $FEI = \frac{\sum_{i=1}^{n}f_{i,g}s_{i,g}}{n}$ (7)    
 # 
 # Where $f$ and $i$ remain the same, $g$ is a specific fishing gear, and $s_{i,g}$ is a species category score (0-1). This index is different from the weighted threat score as it is normalised by the number of species. In this way, it is a gear-specific fishing overlap index similar to the biodiversity risk score from O'Hara [-@OHara2019], but is based off industrial fishing effort data. 
+#Maps use the Natural Earth shapefiles for coastlines (110m; www.naturalearthdata.com).
+
 ```
 
 
-This analysis was conducted in R [@RCoreTeam2017], and used the tidyverse [@Wickham2016], rMarkdown [@Baumer2015], tidytext [@Fay2018]; gridExtra [@Auguie2017]; sf [@Pebesma2019], rgdal [@Pebesma2012], cowplot [@Huber2017a], and wesanderson [@Ram2018] packages. All code and outputs are available at www.github.com/timcashion/iucnfishingthreats. Maps use the Natural Earth shapefiles for coastlines (110m; www.naturalearthdata.com).
-
+This analysis was conducted in R [@RCoreTeam2017], and used the tidyverse [@Wickham2016], rMarkdown [@Baumer2015], tidytext [@Fay2018]; gridExtra [@Auguie2017]; sf [@Pebesma2019], rgdal [@Pebesma2012], cowplot [@Huber2017a], and wesanderson [@Ram2018] packages. All code and outputs are available at www.github.com/timcashion/iucnfishingthreats. 
 For more information on our data sources and methods, see the supplemental methods. 
 
-![Figure 3. Conceptual methods figure.](./figs/methods_figure/methods_figure1.png)
+![Figure 3. Conceptual methods figure.](./figs/methods_figure/methods_figure1_alt.png)
 
 
 ## Supplemental methods 
@@ -275,16 +276,16 @@ For more information on our data sources and methods, see the supplemental metho
 ## Supplemental Tables
 
 Table S1. 
-```{r gear-search-table}
-gear_search_table <- read_csv("./output/gear_search_terms_table.csv")
-kable(gear_search_table, caption="Search terms used for identifying gear types in IUCN narrative text.")
-```
-
-Table S2. 
 ```{r risk-code-lookup}
 risk_code_lookup <- read_csv("./data/risk_code_lookup.csv")
 colnames(risk_code_lookup) <- c("Former code", "Category", "Current Code", "Category Score")
 kable(risk_code_lookup, caption="Weighting of IUCN Categories")
+```
+
+Table S2. 
+```{r gear-search-table}
+gear_search_table <- read_csv("./output/gear_search_terms_table.csv")
+kable(gear_search_table, caption="Search terms used for identifying gear types in IUCN narrative text.")
 ```
 
 Table S3. 
@@ -298,17 +299,6 @@ kable(sau_gear_table, caption="Gear types identified in the *Sea Around Us* data
 ```
 
 Table S4. 
-```{r gfw-gear-table}
-gfw_gear_table <- read_csv("./data/gfw_gear_table.csv")
-gfw_gear_table <- gfw_gear_table %>% 
-  mutate(gfw_label = gsub(gfw_label, pattern= "_", replacement=" "),
-         gfw_label = str_to_sentence(gfw_label))
-colnames(gfw_gear_table) <- c("GFW Gear Type", "GFW Description")
-
-kable(gfw_gear_table, caption="Gear types identified in the *Global Fishing Watch* database.")
-```
-
-Table S5. 
 ```{r gear-multiplier-table}
 gear_multiplier_table <- read_csv("./data/gear_price_multipliers.csv")
 gear_multiplier_table <- gear_multiplier_table %>% 
@@ -318,6 +308,15 @@ gear_multiplier_table <- gear_multiplier_table %>%
 colnames(gear_multiplier_table) <- str_to_title(colnames(gear_multiplier_table))
 kable(gear_multiplier_table, caption="Regression results for gear types used and their gear multipliers used", digits=3)
 
+```
+
+Table S5
+```{r hs-categorization-table}
+hs_categ <- read_csv("./output/hs_area_categorization.csv")
+hs_categ$water_area <- hs_categ$water_area/1000000
+
+colnames(hs_categ) <- c("Category", "Water Area (million km2)", "Percent of High Seas")
+kable(hs_categ, digits = 2, caption="Area of high seas by categorization")
 ```
 
 

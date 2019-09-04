@@ -202,7 +202,25 @@ output <- bigrams_united %>%
 output
 
 trawl_habitat_modifying <- output %>% filter(habitat==1) %>% filter(bottom_trawl==1|pelagic_trawl==1|trawl_unspec==1)
+trawl_habitat_possible <- species_threats_narrative %>% filter(iucn_id %in% trawl_habitat_modifying$iucn_id)
 
+habitat_causal <- c("habitat modification from fish|habitat destruction from fish|habitat destruction from destructive fish|habitat modification from destructive fish|destructive fishing practices")
+trawl_habitat_possible$causal <- NA
+trawl_habitat_possible$causal[grepl(trawl_habitat_possible$result.threats, pattern=habitat_causal)] <- 1
+trawl_habitat_possible$causal[grepl(trawl_habitat_possible$result.usetrade, pattern=habitat_causal)] <- 1
+sum(trawl_habitat_possible$causal,na.rm=TRUE)
+
+trawl_habitat_possible$dynamite <- NA
+trawl_habitat_possible$dynamite[grepl(trawl_habitat_possible$result.threats, pattern="dynamite|explosiv")] <- 1
+trawl_habitat_possible$dynamite[grepl(trawl_habitat_possible$result.usetrade, pattern="dynamite|explosiv")] <- 1
+sum(trawl_habitat_possible$dynamite,na.rm=TRUE)
+
+trawl_habitat_possible$destructive <- NA
+trawl_habitat_possible$destructive[grepl(trawl_habitat_possible$result.threats, pattern="destructive fishing|destructive fisheries")] <- 1
+trawl_habitat_possible$destructive[grepl(trawl_habitat_possible$result.usetrade, pattern="destructive fishing|destructive fisheries")] <- 1
+sum(trawl_habitat_possible$destructive,na.rm=TRUE)
+
+write_csv(trawl_habitat_possible, file.path(dir_data, "trawl_habitat_output.csv"))
 #Looked into one of these species and it just happened these are both threats. No causation. 
 ```
 
