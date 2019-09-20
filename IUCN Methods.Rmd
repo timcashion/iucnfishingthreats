@@ -1,6 +1,6 @@
 ---
-title: "IUCN Methods and Supplemental Methods and Tables"
-author: "Tim Cashion et al."
+title: "Methods and Supplemental Tables for Low cost conservation: Fisheries gear threats to marine species"
+author: "Tim Cashion, Travis Tai, Vicky Lam, Daniel Pauly, and U. Rashid Sumaila"
 date: "`r date()`"
 output: 
   # bookdown::html_document2:
@@ -13,8 +13,6 @@ always_allow_html: yes
 csl: science.csl
 ---
 
-<!-- Note: Cost is not spatialized so that bottom trawling far offshore by the same country costs the same as bottom trawling on shore. 
--->
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = F)
@@ -68,11 +66,11 @@ gear_threat_num <- prettyNum(gear_threat_num, big.mark = ",")
 ### IUCN data 
 The International Union for Conservation of Nature (IUCN) maintains the IUCN Red List of Threatened Species (hereafter, 'Red List') that documents the population status and threats of species globally. Species (and sub-populations of species) that are assessed by the IUCN are categorised into one of the following in order of increasing conservation threat: Least Concern, Near Threatened, Vulnerable, Endangered, Critically Endangered, and Extinct. A final category exists of 'Data Deficient' that indicates there is not enough information to properly assess the population status of a species. Together, Vulnerable, Endangered, and Critically Endangered are often grouped together as 'Threatened'. In addition to the categorisation of the threat status, the IUCN provides species range maps, detailed description of threats, and other important information on the species included in the Red List.
 
-Red List Categories, spatial habitat maps, identified threats by species, and a description of threats were gathered from the IUCN API version 2019-2 [@IUCN2019]. The known threats to each marine species were extracted from the IUCN API focusing on threats identified in Category 5: Biological Resource Use. The Red List identifies four different types of fisheries impacts from either intentional or unintentional capture/harvest from the large- or small-scale fisheries. These threats are categorised by the IUCN as unknown, past, no, low, medium, or high impact. In addition, the text from the 'Detailed Threats' and 'Use and Trade' sections for each marine species was extracted from the IUCN API. After extracting the description of the species threats and use and trade information, we tokenized (i.e., separated the text into one word strings) the text extracting standard stop words and searched for single words and bigrams of fishing gears (e.g., 'bottom trawl' or 'longline', see Table S1). Bigrams were used as they can include more specific gear types than single words alone (e.g., 'bottom trawl' versus 'trawl' and 'purse seine' versus 'seine'). The label for different fishing gears analysed are included in Table \@ref(tab:gear-search-table). These were devised to match the IUCN narrative text most closely to relevant *Sea Around Us* gears and Global Fishing Watch gears. 
+Red List Categories, spatial habitat maps, identified threats by species, and a description of threats were gathered from the IUCN API version 2019-2 [@IUCN2019]. The known threats to each marine species were extracted from the IUCN API focusing on threats identified in Category 5: Biological Resource Use. The Red List identifies four different types of fisheries impacts from either intentional or unintentional capture/harvest from the large- or small-scale fisheries. These threats are categorised by the IUCN as unknown, past, no, low, medium, or high impact. In addition, the text from the 'Detailed Threats' and 'Use and Trade' sections for each marine species was extracted from the IUCN API. After extracting the description of the species threats and use and trade information, we tokenized (i.e., separated the text into one word strings) the text extracting standard stop words and searched for single words and bigrams of fishing gears (e.g., 'bottom trawl' or 'longline', see Table S1). Bigrams were used as they can include more specific gear types than single words alone (e.g., 'bottom trawl' versus 'trawl' and 'purse seine' versus 'seine'). The label for different fishing gears analysed are included in Table \@ref(tab:gear-search-table). These were devised to match the IUCN narrative text most closely to relevant *Sea Around Us* gears. 
 
-We accessed spatial species distribution shape files from the Red List for comprehensively assessed groups that include marine organisms [@IUCN2019]. We supplemented this with Bird Life International species distribution files for birds that occur in marine areas [@BirdLifeInternational2018]. Marine molluscs have not been comprehensively assessed (i.e., less than 80% of the species in this group have not been assessed) by the IUCN except for Cone Snails (*Conus* spp.), and this is a gap in our data coverage. We converted the species distribution maps to raster format at various spatial scales to correspond to existing datasets in fisheries research including a 0.5° by 0.5°, 0.1° by 0.1°, and 10 km^2^ x 10 km^2^ scale. We rasterised the species distribution files following the same process of [@OHara2019].
+We accessed spatial species distribution shape files from the Red List for comprehensively assessed groups that include marine organisms [@IUCN2019]. We supplemented this with Bird Life International species distribution files for birds that occur in marine areas [@BirdLifeInternational2018]. Marine molluscs have not been comprehensively assessed (i.e., less than 80% of the species in this group have not been assessed) by the IUCN except for Cone Snails (*Conus* spp.), and this is a gap in our data coverage. We converted the species distribution maps to raster format at various spatial scales to correspond to existing datasets in fisheries research, but used a 0.5° by 0.5° for our analysis as it matches the *Sea Around Us* fisheries catch database. We rasterised the species distribution files following the same process of O'Hara [-@OHara2019].
 
-We used the same prioritisation of species Categories based on regional assessments where possible as in O'Hara [-@OHara2019]. Here, regional assessments were matched to associated (i.e., overlapping) marine ecoregions [@Spalding2007] that were then associated with their corresponding cells of the spatial grid used. Regional assessments were used in preference of global assessments where possible. 
+We used the same prioritisation of species IUCN Categories based on regional assessments where possible as in O'Hara [-@OHara2019]. Here, regional assessments were matched to associated (i.e., overlapping) marine ecoregions [@Spalding2007] that were then associated with their corresponding cells of the spatial grid used. Regional assessments were used in preference of global assessments where possible. 
 
 ```{r progressive-refinement-table, fig.cap="Reason for elimination of species from our  final analysis", echo=FALSE, message=F}
 #I want to show how we get from all marine species to our narrower list that rely on this habitat to those that we find spatial data for and have fishing gear labelled threats
@@ -189,7 +187,7 @@ $P_{i} = \sum_{x=1}^{x} (L_{xyi} * P_{x} * M_{y}) - (L_{xyi} * C_{y})$ (2)
 
 Both catch and profits are expressed throughout in tonnes/km^2^ and $/km^2^ calculated based on the water area in each 0.5° by 0.5° cell.
 
-Our analysis focuses on the trade-offs among different fisheries with specific gear types. As such, we did not use the Global Fishing Watch data where gear types are often aggregated (bottom and pelagic trawlers grouped together as trawlers), or only represent a narrow subset of the fleet (e.g., drifting longlines) [@Kroodsma2018a]. 
+Our analysis focuses on the trade-offs among different fisheries with specific gear types. As such, we did not use the Global Fishing Watch data where gear types are often aggregated (bottom and pelagic trawlers grouped together as trawlers), or only represent a narrow subset of the fleet (e.g., drifting longlines instead of all longlines) [@Kroodsma2018a]. While the Global Fishing Watch data covers a large part of the global catch (perhaps near 75% in recent years), it does not have the same coverage of vessels. The dataset is biased against small-scale vessels which are not harm-free. 
 
 ### Analysis
 
@@ -243,35 +241,9 @@ Second, we adapt this metric so that it isn't normalised to the mean threat in t
 
 $WeightedThreatScore_{i,g} = \sum_{i=1}^{N_{cell}}s_{i}$ (4)   
 
-
-```{r}
-
-#Removed text on other metrics removed from manuscript. 
-# The third metric is the WTS divided by the fisheries revenue from that area (0.5° by 0.5° cell). High values for this metric indicate areas with high fisheries revenues for relatively low conservation costs, whereas low values indicate the opposite. This can be used as a scoring metric for areas where conservation is more or less costly to implement for fisheries. 
-# 
-# $\$/ WTS = Revenue_{i,g} / WTS_{i,g}$ (5)  
-# 
-# In addition, we adopt the Fishing Exposure Index (FEI) from Queiroz et al. [-@Queiroz2019] to understand the spatial overlap of species with Global Fishing Watch data. This index was used to understand exposure of 23 species of pelagic sharks that had been fitted with tracking tags to industrial longline and purse seine fishing vessels (using GFW data;equtaion 4). The data is thus generalisable to understand sharks exposure to these gears given their actual locations. The FEI is originally defined as:  
-# 
-# $FEI_{g,i} = \frac{\sum_{i=1}^{n}f_id_i}{n}$ (6)  
-# 
-# Where $f_i$ is fishing effort in grid cell $i$ occupied, $d_i$ is the relative density contribution within cell $i$ of a given shark's , and $n$ is the number of grid cells occupied by an individual in that month. Here we adapt the $FEI$ to overlap with species range maps, instead of tagged individuals (equation 5). Our adapted equation is:  
-# 
-# $FEI = \frac{\sum_{i=1}^{n}f_{i,g}s_{i,g}}{n}$ (7)    
-# 
-# Where $f$ and $i$ remain the same, $g$ is a specific fishing gear, and $s_{i,g}$ is a species category score (0-1). This index is different from the weighted threat score as it is normalised by the number of species. In this way, it is a gear-specific fishing overlap index similar to the biodiversity risk score from O'Hara [-@OHara2019], but is based off industrial fishing effort data. 
-#Maps use the Natural Earth shapefiles for coastlines (110m; www.naturalearthdata.com).
-
-```
-
-
-This analysis was conducted in R [@RCoreTeam2017], and used the tidyverse [@Wickham2016], rMarkdown [@Baumer2015], tidytext [@Fay2018]; gridExtra [@Auguie2017]; sf [@Pebesma2019], rgdal [@Pebesma2012], cowplot [@Huber2017a], and wesanderson [@Ram2018] packages. All code and outputs are available at www.github.com/timcashion/iucnfishingthreats. 
-For more information on our data sources and methods, see the supplemental methods. 
+This analysis was conducted in R [@RCoreTeam2017], and used the tidyverse [@Wickham2016], rMarkdown [@Baumer2015], tidytext [@Fay2018]; gridExtra [@Auguie2017]; sf [@Pebesma2019], rgdal [@Pebesma2012], cowplot [@Huber2017a], and wesanderson [@Ram2018] packages. All code and outputs are available at www.github.com/timcashion/iucnfishingthreats.
 
 ![Figure 3. Conceptual methods figure.](./figs/methods_figure/methods_figure1_alt.png)
-
-
-## Supplemental methods 
 
 
 ## Supplemental Tables
@@ -319,8 +291,3 @@ hs_categ$water_area <- hs_categ$water_area/1000000
 colnames(hs_categ) <- c("Category", "Water Area (million km2)", "Proportion of High Seas (%)")
 kable(hs_categ, digits = 2, caption="Area of high seas by categorization")
 ```
-
-
-## Supplemental Figures 
-
-

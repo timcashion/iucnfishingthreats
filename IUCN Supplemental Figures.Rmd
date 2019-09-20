@@ -1,6 +1,6 @@
 ---
-title: "IUCN_Supplemental Figures"
-author: "Tim Cashion et al."
+title: "Supplemental Figures: "
+author: "Tim Cashion, Travis Tai, Vicky Lam, Daniel Pauly, and U. Rashid Sumaila"
 date: "`r date()`"
 output: bookdown::html_document2
 bibliography: MyCollection.bib
@@ -19,7 +19,6 @@ ipak <- function(pkg){
 
 
 packages <- c("tidyverse", 
-              "rgdal",
               "wesanderson",
               "parallel",
               "bookdown",
@@ -79,42 +78,10 @@ null_colour = "grey50"
 
 ```{r data}
 
-#Establish list of marine species 
-all_species <- data.table::fread(file.path(dir_data, paste( "iucn_species_list_", api_version,".csv", sep="")))
-
 marine_species <- read.csv(file.path(dir_data, paste( "spp_marine_from_", api_version,".csv", sep="")))
-#### Align with threats and narrative text: ####
+risk_codes <- read.csv(file.path(dir_data, "risk_code_lookup.csv"), stringsAsFactors = F)
 species_threats <- read.csv(file.path(dir_data, "species_fishing_threats.csv"), stringsAsFactors = F)
 colnames(species_threats) <- gsub(colnames(species_threats), pattern="result\\.", replacement="")
-risk_codes <- read.csv(file.path(dir_data, "risk_code_lookup.csv"), stringsAsFactors = F)
-species_threats <- species_threats %>% left_join(risk_codes, by=c("category"="code"))
-species_threats <- species_threats %>%
-  dplyr::select(iucn_sid, class_name, scientific_name, code_current, cat_score) %>%
-  unique()
-
-
-# threatened_status <- c("VU", "CR", "EN")
-# species_threats <- species_threats %>% filter(code_current %in% threatened_status)
-text_threats <- read_csv(file.path(dir_data, "narrative_threats_output_tidy.csv"))
-
-cell_size <- "05"
-
-spat_files <- list.files(file.path(paste(dir_rasters, "_", cell_size, sep="")))
-spat_files <- spat_files[spat_files != "desktop.ini"]
-raster_read <- function(filename){
-  id <- gsub(filename, pattern="iucn_sid_", replacement = "")
-  id <- gsub(id, pattern=".csv", replacement = "")
-  spp_rast <- data.table::fread(file.path(paste(dir_rasters, "_", cell_size, sep=""), filename))
-  if(nrow(spp_rast)>0){
-    spp_rast$iucn_sid <- as.numeric(id)
-    return(spp_rast)
-  }
-}
-# spat_list <- parallel::mclapply(spat_files, raster_read)
-# spat_list <- bind_rows(spat_list)
-# write_csv(spat_list, file.path(dir_data, "spat_list.csv"))
-spat_list <- data.table::fread(file.path(dir_data, "spat_list.csv"))
-
 cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_ids.txt"), header=F, col.names = c("cell_id", "lon", "lat"))
 cell_id_area <- data.table::fread(file.path(dir_spatial_csvs, "cell_id_area_05.csv"))
 
@@ -125,51 +92,7 @@ allocated_gear_profit <- allocated_gear_profit %>%
   mutate(catch_km2 = mean_catch/water_area,
          profit_km2 = mean_profit/water_area)
 
-spat_data <- spat_list %>% 
-  left_join(cell_ids, by="cell_id") %>%
-  mutate(category = if_else(is.na(rgn_category), global_category, rgn_category)) %>% 
-  left_join(risk_codes %>% dplyr::select(-c(category)), by=c("category"="code"))
 
-gfw_2016 <- data.table::fread(file.path(dir_spatial_csvs, "gfw_2016_01.csv"))
-
-```
-
-```{r map-setup}
-
-#Load it!
-#World <- readOGR(file.path(dir_spatial, "ne_10m_coastline/ne_10m_coastline.shp"))
-World <- readOGR(file.path(dir_spatial, "ne_110m_coastline/ne_110m_coastline.shp"), verbose=FALSE) #Switched to using without Caspian Sea for better visuals.
-
-# fortify.shape <- function(x){
-#   x@data$id <- rownames(x@data)
-#   x.f = fortify(x, region = "id")
-#   x.join <- inner_join(x.f, x@data, by = "id")
-# }
-
-Forty_World<- fortify(World)
-
-base_map <- ggplot() +
-  geom_path(data = Forty_World, aes(x = long,
-                                    y = lat,
-                                    group = group
-  ),
-  color = "black",
-  size = 0.25) +
-  theme_classic() + 
-  labs(list(title = "",
-            x = "Longitude",
-            y = "Latitude")) +
-  #scale_fill_gradientn(colours = pal) +
-  scale_x_continuous(expand=c(0,0)) +
-  scale_y_continuous(expand=c(0,0)) +
-  labs(fill="") + 
-  NULL 
-
-
-# cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_ids.txt"), header=F, col.names = c("cell_id", "lon", "lat"))
-# cell_id_area <- data.table::fread(file.path(dir_spatial_csvs, "cell_id_area_05.csv"))
-# water_test <- cell_ids %>% left_join(cell_id_area)
-# ggplot() + geom_tile(data=water_test, aes(x=lon, y=lat, fill=water_area))
 
 ```
 
@@ -203,7 +126,10 @@ cell_ids <- cell_ids %>%
          entity = ifelse(is.na(entity) & water_area>0, "High seas", entity))
 
 files <- list.files(dir_output)[grepl(list.files(dir_output), pattern="_SAU_IUCN_threat_05.csv")]
-files <- gsub(files, pattern="_.*", replacement="")
+files <- file.path(dir_output, files)
+harmonized_list <- lapply(files, data.table::fread)
+files = gsub(files, pattern="_.*", replacement="")
+files = gsub(files, pattern=".*/", replacement="")
 for (i in 1:length(harmonized_list)){
   harmonized_list[[i]]$super_code <- files[i]
 }
@@ -272,7 +198,13 @@ num_dynamite <- sum(trawl_hab$dynamite, na.rm=TRUE)
 num_destructive <- sum(trawl_hab$destructive, na.rm=TRUE)
 
 ```
+
 Of the `r prettyNum(trawl_unspec, big.mark=",")` marine species that have trawling ('trawls unspecificed') identified as a threat, only `r toString(num_trawl_hab)` have habitat modification also identified as a threat. When reviewing the threat description for these species, many of them are identified as two separate threats. `r toString(num_destructive)` of these have 'destructive fishing practices' identified as a threat. 
+
+## Supplemental discussion
+It is important to caveat our study knowing that we cannot fully account for the current extent of humanity's use of the oceans and this study has focused on fisheries. Small-scale fisheries are critical to coastal livelihoods across the world and must not be compromised by overly broad conservation initiatives, but instead included when implementing actions to improve aspects of ocean health (e.g. [@Halpern2012]). 
+
+In addition, while we use catch and fisheries profits as a proxy for importance, these are not adjusted for their importance to the country (i.e., percentage of GDP from fisheries revenues or percentage of animal protein from locally caught fish), nor do they take into account differences in purchasing power parity where $1000 of fisheries profits is much more valuable in poorer countries than in industrialized countries. 
 
 ## Supplemental Figures
 
@@ -312,181 +244,4 @@ if(fig_output==TRUE){ #Erase existing manuscript figs and re-output
 
 ```
 
-
-```{r threat-maps-function}
-threat_maps <- function(gear=NA, text_threats=text_threats, allocated_gear_profit=allocated_gear_profit, spat_data=spat_data){
-  gear_species <- text_threats %>%
-    filter(super_code==gear) 
-  fishing_dat <- allocated_gear_profit %>% 
-    filter(super_code==gear) %>% 
-    group_by(lon, lat) %>% 
-    summarize(catch_km2 = sum(catch_km2, na.rm=TRUE)) %>% 
-    ungroup()
-  max_catch <- max(fishing_dat$catch_km2)
-  min_catch <- non_min_min(fishing_dat$catch_km2)
-  diff <- log10(max_catch) - log10(min_catch)
-  breaks_gear <- 10^seq(-2, 1, 1)
-  labels_gear <- c("<=0.01", breaks_gear[2:4])
-  breaks_gear <- log10(breaks_gear)
-  fishing_dat <- fishing_dat %>% 
-    mutate(catch_km2 = ifelse(catch_km2<0.01 & catch_km2>0, 0.01, catch_km2),
-           catch_km2 = ifelse(catch_km2>10, 10, catch_km2))
-  #labels_gear <- round(breaks_gear, 1)
-  # labels_gear <-prettyNum(breaks_gear, format="e",digits=3)
-  threat_dat <- spat_data %>% 
-    filter(iucn_sid %in% gear_species$iucn_sid)  %>% 
-    group_by(lon, lat) %>% 
-    summarize(n = sum(presence, na.rm = T),
-              weighted_score = sum(cat_score, na.rm = T)) %>% 
-    ungroup()
-  catch_threat <- left_join(fishing_dat, threat_dat) %>% 
-    mutate(super_code=gear)
-  write_csv(catch_threat, file.path(dir_output, paste(gear, "catch_threat.csv", sep="")))
-  gear_map <- base_map + 
-    geom_tile(data=fishing_dat, 
-              aes(x=lon, y=lat, fill=log10(catch_km2))) +
-    labs(fill="Catch (metric tonnes/km2)", x="Longitude", y="Latitude") +
-    scale_fill_gradientn(colors=pal, 
-                         breaks = breaks_gear,
-                         labels = labels_gear, 
-                         limits=c(min(breaks_gear)-0.001, max(breaks_gear+0.001)),
-                         na.value=null_colour)
-  occurrence_map <- base_map + 
-    geom_tile(data=threat_dat, 
-              aes(x=lon, y=lat, fill=n)) +
-    labs(fill="Species occurrence", x="Longitude", y="Latitude")
-  threat_map <- base_map + 
-    geom_tile(data=threat_dat, 
-              aes(x=lon, y=lat, fill=weighted_score)) +
-    labs(fill="Weighted threat\nscore", x="Longitude", y="Latitude")
-  map_grid <- cowplot::plot_grid(gear_map, 
-            occurrence_map,
-            threat_map,
-            align = "v", 
-            rel_widths = c(1,1,1),
-            labels="AUTO",
-            ncol = 1)
-  return(map_grid)
-}
-
-```
-
-Also drop x-axes from top 6? and y axes from right column? 
-
-```{r ease-of-conservation-plot-function}
-ease_of_conservation <- function(gear=NA, text_threats=text_threats, allocated_gear_profit=allocated_gear_profit, spat_data=spat_data){
-  gear_species <- text_threats %>%
-    filter(super_code==gear) 
-  fishing_dat <- allocated_gear_profit %>% 
-    filter(super_code==gear) %>% 
-    group_by(lon, lat) %>% 
-    summarize(catch_km2 = sum(catch_km2, na.rm=TRUE)) %>% 
-    ungroup()
-  # max_catch <- max(fishing_dat$catch_km2)
-  # min_catch <- non_min_min(fishing_dat$catch_km2)
-  # diff <- log10(max_catch) - log10(min_catch)
-  # breaks_gear <- 10^seq(-2, 1, 1)
-  # labels_gear <- c("<=0.01", breaks_gear[2:4])
-  # breaks_gear <- log10(breaks_gear)
-  fishing_dat <- fishing_dat %>% 
-    mutate(catch_km2 = ifelse(catch_km2<0.01 & catch_km2>0, 0.01, catch_km2),
-           catch_km2 = ifelse(catch_km2>10, 10, catch_km2))
-  #labels_gear <- round(breaks_gear, 1)
-  # labels_gear <-prettyNum(breaks_gear, format="e",digits=3)
-  threat_dat <- spat_data %>% 
-    filter(iucn_sid %in% gear_species$iucn_sid)  %>% 
-    group_by(lon, lat) %>% 
-    summarize(n = sum(presence, na.rm = T),
-              weighted_score = sum(cat_score, na.rm = T)) %>% 
-    ungroup()
-  
-  map_dat <- full_join(fishing_dat, threat_dat) %>% 
-    gather(key="variable", value="value", -lon:-lat) %>% 
-    group_by(variable) %>% 
-    mutate(value = ifelse(is.na(value), 0, value)) %>% 
-    mutate(norm_value = value/max(value),
-           perc_value = percent_rank(value)) %>% 
-    ungroup()
-  easy_conservation <- map_dat %>% 
-    mutate(perc_value = ifelse(variable=="catch_km2", 1-perc_value, perc_value)) %>% 
-    filter(variable!= "n") %>% 
-    group_by(lon, lat) %>% 
-    summarize(synth_measure = mean(perc_value))
-  easy_conservation_map <- base_map +
-    geom_tile(data=easy_conservation, aes(x=lon, y=lat, fill=synth_measure)) +
-    labs(fill="Ease of \nConservation Score",
-              title = "",
-              x = "Longitude",
-              y = "Latitude") +
-    theme(legend.position = "none")
-  return(easy_conservation_map)
-  }
-
-```
-
-
-Add in plots for each gear type of each map type: Catches, species occurence (n), and weighted threat score. 
-
-```{r, fig.width=9, fig.height=15, fig.cap="Bottom trawl: Distribution of catches (A), species occurrence (B), and weighted threat score (C) by gear type"}
-bt_threats <- threat_maps(gear="bottom trawl", text_threats=text_threats, allocated_gear_profit=allocated_gear_profit, spat_data=spat_data)
-print(bt_threats)
-
-if(fig_output==TRUE){
-  ggsave(file.path(dir_supplemental_figs, "bt_threats.png"), dpi=600, width=12, height=15)
-}
-```
-
-```{r, fig.width=9, fig.height=15, fig.cap="Pelagic trawl: Distribution of catches (A), species occurrence (B), and weighted threat score (C) by gear type"}
-pt_threats <- threat_maps(gear="pelagic trawl", text_threats=text_threats, allocated_gear_profit=allocated_gear_profit, spat_data=spat_data)
-print(pt_threats)
-if(fig_output==TRUE){
-  ggsave(file.path(dir_supplemental_figs, "pt_threats.png"), dpi=600, width=12, height=15)
-}
-```
-
-```{r, fig.width=9, fig.height=15, fig.cap="Longline: Distribution of catches (A), species occurrence (B), and weighted threat score (C) by gear type"}
-ll_threats <- threat_maps(gear="longline", text_threats=text_threats, allocated_gear_profit=allocated_gear_profit, spat_data=spat_data)
-print(ll_threats)
-if(fig_output==TRUE){
-  ggsave(file.path(dir_supplemental_figs, "ll_threats.png"), dpi=600, width=12, height=15)
-}
-```
-
-```{r, fig.width=9, fig.height=15, fig.cap="Purse seine: Distribution of catches (A), species occurrence (B), and weighted threat score (C) by gear type"}
-ps_threats <- threat_maps(gear="purse seine", text_threats=text_threats, allocated_gear_profit=allocated_gear_profit, spat_data=spat_data)
-print(ps_threats)
-if(fig_output==TRUE){
-  ggsave(file.path(dir_supplemental_figs, "ps_threats.png"), dpi=600, width=12, height=15)
-}
-```
-
-```{r, fig.width=9, fig.height=15, fig.cap="Gillnet: Distribution of catches (A), species occurrence (B), and weighted threat score (C) by gear type"}
-gn_threats <- threat_maps(gear="gillnet", text_threats=text_threats, allocated_gear_profit=allocated_gear_profit, spat_data=spat_data)
-print(gn_threats)
-if(fig_output==TRUE){
-  ggsave(file.path(dir_supplemental_figs, "gn_threats.png"), dpi=600, width=12, height=15)
-}
-```
-
-Figure \@ref(fig:ease-of-conservation-plots)
-```{r ease-of-conservation-plots, fig.width=12, fig.height=20, fig.cap="Ease of conservation by gear type"}
-
-sau_gear_types <- unique(allocated_gear_profit$super_code)
-iucn_gear_types <- unique(text_threats$super_code)
-gear_types <- iucn_gear_types[grep(iucn_gear_types, pattern=paste(sau_gear_types, collapse="|"))]
-
-
-ease_maps <- lapply(gear_types, FUN=ease_of_conservation, text_threats=text_threats, allocated_gear_profit=allocated_gear_profit, spat_data=spat_data)
-ease_legend <- cowplot::get_legend(ease_maps[[1]] + theme(legend.position="right", legend.box.margin = margin(0,0,0,12)))
-
-map_grid <- cowplot::plot_grid(plotlist = ease_maps,
-            align = "v", 
-            rel_widths = rep(1,8),
-            ncol = 2)
-map_grid_with_legend <- plot_grid(map_grid, ease_legend, rel_widths = c(8,1.25))
-print(map_grid_with_legend)
-if(fig_output==TRUE){
-  ggsave(file.path(dir_supplemental_figs, "ease_of_conservation.png"), dpi=300, width=16)
-}
-```
 
