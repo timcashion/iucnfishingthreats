@@ -3,13 +3,14 @@ title: "IUCN Methods and Supplemental Methods and Tables"
 author: "Tim Cashion et al."
 date: "`r date()`"
 output: 
-  bookdown::html_document2:
-    default
-  # bookdown::word_document2:
+  # bookdown::html_document2:
   #   default
+  bookdown::word_document2:
+    default
 bibliography: MyCollection.bib
 always_allow_html: yes
-biblio-style: "apalike"
+#biblio-style: "apalike"
+csl: science.csl
 ---
 
 <!-- Note: Cost is not spatialized so that bottom trawling far offshore by the same country costs the same as bottom trawling on shore. 
@@ -73,7 +74,7 @@ We accessed spatial species distribution shape files from the Red List for compr
 
 We used the same prioritisation of species Categories based on regional assessments where possible as in O'Hara [-@OHara2019]. Here, regional assessments were matched to associated (i.e., overlapping) marine ecoregions [@Spalding2007] that were then associated with their corresponding cells of the spatial grid used. Regional assessments were used in preference of global assessments where possible. 
 
-```{r progressive-refinement-table, fig.cap="Reason for elimination of species included in the final analysis", echo=FALSE, message=F}
+```{r progressive-refinement-table, fig.cap="Reason for elimination of species from our  final analysis", echo=FALSE, message=F}
 #I want to show how we get from all marine species to our narrower list that rely on this habitat to those that we find spatial data for and have fishing gear labelled threats
 
 dir_data <- "./data"
@@ -159,7 +160,7 @@ progressive_refinement
 
 ```
 
-The Red List contains detailed information on the species system and habitat types. The system delineates species into terrestrial, freshwater, and marine systems (with species able to occur in multiple systems) and this was used to restrict our analysis to marine species. In addition, we restricted those within the marine system to specific habitats to eliminate species whose are not dependent on the marine environment nor likely to be affected by fisheries, following O'Hara et al. [-@OHara2019]. After restricting our analysis to marine dependent species that are threatened by fishing gears and have species range maps available from the IUCN or BirdLife International, our analysis focused on `r gear_threats_spatial` number of species (Fig S3).
+The Red List contains detailed information on the species system and habitat types. The system assigns species to terrestrial, freshwater, and marine ecosystems (with species able to occur in multiple ecosystems) and this was used to restrict our analysis to marine species. In addition, we restricted those within the marine ecosystem to specific habitats to eliminate species whose are not dependent on the marine environment nor likely to be affected by fisheries, following O'Hara et al. [-@OHara2019]. After restricting our analysis to marine dependent species that are threatened by fishing gears and have species range maps available from the IUCN or BirdLife International, our analysis focused on `r gear_threats_spatial` number of species (Fig S3).
 
 ### Fisheries data  
 The *Sea Around Us* has reconstructed marine fisheries catches for all marine countries and territories from 1950 to present. The process of reconstruction supplements and corrects reported fisheries catches with estimates of known to be excluded fishing sectors (e.g., artisanal and recreational fishing) and practices (e.g., discarding) [@Zeller2016]. These catches are spatially allocated according to a rule-based assignment and based on known information on where the fishery was operating (within domestic EEZs, foreign EEZs, the high seas, etc.). The spatial scale used is 0.5° by 0.5°.
@@ -172,7 +173,7 @@ In addition, we use the corollary Fisheries Economics Research Unit (FERU) ex-ve
 
 Due to the importance of gear to our analysis, and its importance as a determinant on the ex-vessel price of fish [@Lee2014; @Asche2012; @Mcconnell2000], we modify the ex-vessel prices by a gear multiplier. We determine this gear multiplier through a hedonic pricing model where gear type is an explanatory variable of the ex-vessel fish price. 
 
-First, we combined two datasets that report fisheries ex-vessel revenues by gear type and species. The first is the National Marine Fisheries Service annual commercial landings by gear type [@NMFS2017]. The second is the monthly landings by gear type, port and species of the UK's fisheries [@MarineManagementOrganisation2017]. We harmonized the gear types listed in each to match our existing dataset gear types. While these two datasets are not representative of global fisheries nor ex-vessel prices for all species, they give adequate coverage to derive the effect of different gear types used for catching different species and how it modifies ex-vessel prices. 
+First, we combined two datasets that report fisheries ex-vessel revenues by gear type and species. The first is the U.S. National Marine Fisheries Service annual commercial landings by gear type [@NMFS2017]. The second is the monthly landings by gear type, port and species of the UK's fisheries [@MarineManagementOrganisation2017]. We harmonized the gear types listed in each to match our existing dataset gear types. While these two datasets are not representative of global fisheries nor ex-vessel prices for all species, they give adequate coverage to derive the effect of different gear types used for catching different species and how it modifies ex-vessel prices. 
 
 We then used a fixed-effects model with linear regression to derive the effect of changing gear type on the ex-vessel price $Price_{xyzt}$ for species $x$, gear $y$, in country $z$ in year $t$. We used the natural logarithm of landings and prices as these variables are closer to a normal distribution when log-transformed, and thus reduces potential heteroscedasticity in our residuals. We also use the country, species, and year as explanatory variables to account for other changes in the price both over time  and between these different markets. 
 
@@ -215,15 +216,15 @@ conceptual_figure <- ggplot(data=df, aes(x=x,y=y, group=group)) +
         panel.grid.minor=element_blank(),plot.background=element_blank()) + 
   ylab("Fishery") + 
   xlab("Conservation") + 
-  scale_x_discrete(position = "top") +
+  #scale_x_discrete(position = "top") +
   annotate("text", x = -4, y = -5, label = "Areas of low concern", size=3, color="grey40") + 
   annotate("text", x = -4, y = 5, label = "Fishery prioritisation", size=3, color="grey40") + 
   annotate("text", x = 5, y = 5, label = "Competition", size=3, color="grey40") + 
   annotate("text", x = 5, y = -5, label = "Conservation prioritisation", size=3, color="grey40") + 
-  annotate("text", x = -4, y = 9, label = "L", size=3, color="grey40") + 
-  annotate("text", x = 4, y = 9, label = "H", size=3, color="grey40") + 
-  annotate("text", x = -9, y = 4, label = "H", size=3, color="grey40") + 
-  annotate("text", x = -9, y = -4, label = "L", size=3, color="grey40") + 
+  annotate("text", x = -4, y = 9, label = "Low", size=3, color="grey40") + 
+  annotate("text", x = 4, y = 9, label = "High", size=3, color="grey40") + 
+  annotate("text", x = -9, y = 4, label = "High", size=3, color="grey40") + 
+  annotate("text", x = -9, y = -4, label = "Low", size=3, color="grey40") + 
   geom_vline(xintercept = -8, alpha=0.5) + 
   geom_hline(yintercept= 8, alpha=0.5) + 
   NULL
@@ -315,7 +316,7 @@ Table S5
 hs_categ <- read_csv("./output/hs_area_categorization.csv")
 hs_categ$water_area <- hs_categ$water_area/1000000
 
-colnames(hs_categ) <- c("Category", "Water Area (million km2)", "Percent of High Seas")
+colnames(hs_categ) <- c("Category", "Water Area (million km2)", "Proportion of High Seas (%)")
 kable(hs_categ, digits = 2, caption="Area of high seas by categorization")
 ```
 

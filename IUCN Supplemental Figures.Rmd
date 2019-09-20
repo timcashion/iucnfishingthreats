@@ -176,6 +176,92 @@ base_map <- ggplot() +
 ## Supplemental Results
 
 
+#### Protecting coastal waters
+
+The coastal waters of three EEZs show very different patterns of fishery conservation by gear type (Figure \@ref(fig:eez-protection-gears)). There are many areas where fisheries should be prioritized and other areas where not all fisheries need to be closed to achieve conservation goals. Small scale fisheries show a diversity of scores across these EEZs confirming they are not impactless. Gillnet fisheries have the highest weighted threat score of any gear in each of these EEZs. Bottom trawl fisheries occur in multiple quadrants including many in the fishery prioritization in China's EEZ waters because of their high profitability and relatively low weighted threat scores in these waters. 
+
+```{r eez-protection-gears, fig.cap="Fisheries profits and weighted score by cell (0.5 by 0.5 grid) for three countries exclusive economic zones. Grey dashed lines indicate the median values  (excluding values of 0) across gear types for fisheries profits per km^2^. Note: X- and Y-axes have different scales in each EEZ."}
+cell_size <- "05"
+eez_cell_ids <- read_csv(file.path(dir_spatial_csvs, paste("eez_cell_ids_", cell_size, ".csv", sep="")))
+eez_ids <- read.csv(file.path(dir_spatial_csvs, "eez_ids.csv")) %>% 
+  rename(eez_id = EEZID, eez = Name, entity=Entity) %>% 
+  dplyr::select(eez_id, eez, entity)
+
+eez_ids <- eez_ids %>% 
+  mutate(eez = gsub(eez, pattern="ô", replacement="o"),
+         entity = gsub(entity, pattern="ô", replacement="o"),
+         eez = gsub(eez, pattern="é", replacement="e"),
+         entity = gsub(entity, pattern="é", replacement="e"))
+
+
+cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_ids.txt"), header=F, col.names = c("cell_id", "lon", "lat"))
+cell_ids_area <- read.csv(file.path(dir_spatial_csvs, paste("cell_id_area_", cell_size,".csv", sep="")))
+cell_ids <- cell_ids %>% left_join(cell_ids_area) %>% left_join(eez_cell_ids) %>% left_join(eez_ids)
+
+cell_ids <- cell_ids %>% 
+  mutate(eez = ifelse(is.na(eez) & water_area>0, "High seas", eez),
+         entity = ifelse(is.na(entity) & water_area>0, "High seas", entity))
+
+files <- list.files(dir_output)[grepl(list.files(dir_output), pattern="_SAU_IUCN_threat_05.csv")]
+files <- gsub(files, pattern="_.*", replacement="")
+for (i in 1:length(harmonized_list)){
+  harmonized_list[[i]]$super_code <- files[i]
+}
+harmonized_threats <- bind_rows(harmonized_list)
+harmonized_threats <- harmonized_threats %>% left_join(cell_ids)
+
+harmonized_threats <- harmonized_threats %>% 
+  mutate(profit_km2 = profit/water_area)
+
+# eez_threats <- eez_threats %>% 
+#   gather(key="variable", value="value", -eez)
+
+mean_profit_global <- mean(allocated_gear_profit %>% filter(profit_km2!=0) %>% pull(profit_km2))
+mean_wts <- mean(harmonized_threats %>% filter(weighted_score>0) %>% pull(weighted_score))
+    
+harmonized_threats$category <- NA
+harmonized_threats <- harmonized_threats %>% 
+  mutate(category = if_else(profit_km2 > mean_profit_global, 
+                            if_else(weighted_score > mean_wts, "Fishery competition", "Fishery prioritization"), 
+                            if_else(weighted_score > mean_wts, "Easy wins", "Area of low concern")))
+
+harmonized_threats$category <- fct_relevel(as.factor(harmonized_threats$category), c("Fishery competition", "Fishery prioritization",  "Area of low concern", "Easy wins"))
+
+
+# eezs_of_interest <- c("High seas", "Indonesia")
+# eez_threats <- harmonized_threats %>% 
+#   filter(eez %in% eezs_of_interest)
+
+entities_of_interest <- c("Australia", "China", "Indonesia")
+exclude_gears <- c("other", "pelagic trawl", "drifting longlines")
+eez_threats <- harmonized_threats %>% 
+  filter(entity %in% entities_of_interest) %>% 
+  filter(!super_code %in% exclude_gears) %>% 
+  mutate(super_code = str_to_sentence(super_code))
+
+text_color <- "grey10"
+text_size <- 4
+eez_gear <- ggplot(data=eez_threats, aes(x=weighted_score, y=profit_km2, color=super_code)) +
+  geom_point(alpha=0.7) +
+  xlab("Weighted threat score") +
+  geom_vline(xintercept = mean_wts, color="grey50", lty="dashed") + 
+  geom_hline(yintercept = mean_profit_global, color="grey50", lty="dashed") + 
+  #scale_color_manual(values=c(zissou5[5], zissou5[4], "grey50", zissou5[1])) +
+  labs(color="Gear type") + 
+  ylab(expression(paste("Profit per ", km^2))) + 
+  #scale_color_manual(values = wes_palette("Darjeeling2")) +
+  theme(strip.background = element_blank()) + 
+  facet_wrap(~entity, scales="free", nrow=1) + 
+  NULL
+eez_gear
+if(fig_output==TRUE){
+  ggsave(plot= eez_gear, 
+         file.path(dir_manuscript_figs, "eez-protection-gear.png"), 
+         dpi=300, width=8, height=4)
+}
+```
+
+
 #### Habitat modification
 ```{r}
 text_threats <- read_csv(file.path(dir_data, "narrative_threats_output_tidy.csv"))
