@@ -1,6 +1,6 @@
 ---
 title: "Methods and Supplemental Tables for Low cost conservation: Fisheries gear threats to marine species"
-author: "Tim Cashion, Travis Tai, Vicky Lam, Daniel Pauly, and U. Rashid Sumaila"
+author: "Tim Cashion, Travis C. Tai, Vicky W.Y. Lam, Daniel Pauly, and U. Rashid Sumaila"
 date: "`r date()`"
 output: 
   # bookdown::html_document2:

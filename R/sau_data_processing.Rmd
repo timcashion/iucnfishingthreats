@@ -17,7 +17,7 @@ ipak(packages)
 dir_data <- "../data"
 dir_spatial_csvs <- "../spatial/csvs"
 dir_spatial <- "../spatial"
-
+dir_raster <- "../spatial/rasters"
 ```
 
 ```{r, eval=FALSE}
@@ -69,7 +69,7 @@ write_csv(allocated_gear_value, file.path(dir_data, "allocated_super_gear_value.
 ```{r eez-shape-file}
 #cell_size <- "01"
 cell_size <- "05"
-cell_ids_rast <- raster(file.path(dir_spatial, paste("cell_ids_", cell_size, "_rast.tif", sep="")))
+cell_ids_rast <- raster(file.path(dir_raster, paste("cell_ids_", cell_size, "_rast.tif", sep="")))
 proj4string(cell_ids_rast) <- CRS(crs_string)
 eez_data_raw <- st_read(file.path(dir_spatial, "sau_eez", "MarineLayerID_2_12_FINAL.shp"))
 #eez_data <- eez_data_raw %>% dplyr::select(EEZID, Cell_ID)

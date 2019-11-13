@@ -1,8 +1,8 @@
 ---
-title: "Supplemental Figures: "
-author: "Tim Cashion, Travis Tai, Vicky Lam, Daniel Pauly, and U. Rashid Sumaila"
+title: "Supplemental Results"
+author: "Tim Cashion, Travis C. Tai, Vicky W.Y. Lam, Daniel Pauly, and U. Rashid Sumaila"
 date: "`r date()`"
-output: bookdown::html_document2
+output: bookdown::word_document2
 bibliography: MyCollection.bib
 always_allow_html: yes
 biblio-style: "apalike"
@@ -98,32 +98,76 @@ allocated_gear_profit <- allocated_gear_profit %>%
 
 ## Supplemental Results
 
+As our study was restricted to Red List marine species with spatial information, we attempted to ensure this was representative of broader patterns in Red List species. Generally, he breakdown between IUCN categories appears to be quite similar between all marine species and those included in this study (Figure \@ref(fig:iucn-categories)). 
+```{r iucn-categories, fig.cap="IUCN category for all marine species (A) and marine species included in this study (B)" , fig.width=8}
+
+#devtools::install_github("timcashion/IUCNpalette") #Requires this palette
+library(IUCNpalette)
+iucn_species <- read.csv(file.path(dir_data, "iucn_species_list.csv"))
+all_species <- iucn_species %>% filter(result.taxonid %in% marine_species$iucn_sid) %>% left_join(risk_codes, by=c("result.category"="code"))
+all_species <- all_species  %>% mutate(code_current = fct_relevel(code_current, c("DD", "LC", "NT", "VU", "EN", "CR", "EX"))) 
+included_species <- all_species %>% filter(result.taxonid %in% species_threats$iucn_sid)
+all_species_plot <- ggplot(data=all_species, aes(x=code_current, fill=code_current)) +
+  geom_bar() + 
+  scale_fill_manual(values= IUCNpalette::iucn_palette(category="All", exclude="NE")) +
+  ylab("Number of species") + 
+  labs(fill="IUCN Category") + 
+  xlab("") + 
+  scale_y_continuous(expand=c(0,0)) + 
+  theme(legend.position = "none", axis.text.x= element_blank()) + 
+  NULL 
+included_species_plot <- ggplot(data=included_species, aes(x=code_current, fill=code_current)) +
+  geom_bar() + 
+  scale_fill_manual(values= IUCNpalette::iucn_palette(category="All", exclude="NE")) +
+  ylab("") + 
+  xlab("") + 
+  labs(fill="IUCN Category") + 
+  scale_y_continuous(expand=c(0,0)) + 
+  theme(legend.position = "none", axis.text.x= element_blank()) + 
+  NULL 
+species_plot_legend <- get_legend(all_species_plot + theme(legend.position = "right"))
+plot_grid(all_species_plot, included_species_plot, species_plot_legend, labels=c("A", "B", ""), align="h", nrow=1, rel_heights = 1, rel_widths = c(1,1,0.5))
+
+if(fig_output==TRUE){ #Erase existing manuscript figs and re-output
+  ggsave(file.path(dir_supplemental_figs, "IUCN_status_marine_versus_study.png"), dpi=300, width=6, height=4)
+}
+
+```
+
 
 #### Protecting coastal waters
 
 The coastal waters of three EEZs show very different patterns of fishery conservation by gear type (Figure \@ref(fig:eez-protection-gears)). There are many areas where fisheries should be prioritized and other areas where not all fisheries need to be closed to achieve conservation goals. Small scale fisheries show a diversity of scores across these EEZs confirming they are not impactless. Gillnet fisheries have the highest weighted threat score of any gear in each of these EEZs. Bottom trawl fisheries occur in multiple quadrants including many in the fishery prioritization in China's EEZ waters because of their high profitability and relatively low weighted threat scores in these waters. 
 
 ```{r eez-protection-gears, fig.cap="Fisheries profits and weighted score by cell (0.5 by 0.5 grid) for three countries exclusive economic zones. Grey dashed lines indicate the median values  (excluding values of 0) across gear types for fisheries profits per km^2^. Note: X- and Y-axes have different scales in each EEZ."}
-cell_size <- "05"
-eez_cell_ids <- read_csv(file.path(dir_spatial_csvs, paste("eez_cell_ids_", cell_size, ".csv", sep="")))
-eez_ids <- read.csv(file.path(dir_spatial_csvs, "eez_ids.csv")) %>% 
-  rename(eez_id = EEZID, eez = Name, entity=Entity) %>% 
+
+#Get cell ids to identify HS areas from EEZs
+cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_id_lon_lat_area.csv"))
+cell_ids_eezs <- read.csv(file.path(dir_spatial_csvs, "cell_id_eez_fao_area.csv"))
+cell_ids_eezs <- cell_ids_eezs %>% select(-water_area) %>% rename(eez_id=area_id)
+cell_ids <- left_join(cell_ids, cell_ids_eezs, by="cell_id")
+
+# cell_size <- "05"
+# eez_cell_ids <- read_csv(file.path(dir_spatial_csvs, paste("eez_cell_ids_", cell_size, ".csv", sep="")))
+eez_ids <- read.csv(file.path(dir_spatial_csvs, "eez_ids.csv")) %>%
+  rename(eez_id = EEZID, eez = Name, entity=Entity) %>%
   dplyr::select(eez_id, eez, entity)
-
-eez_ids <- eez_ids %>% 
-  mutate(eez = gsub(eez, pattern="ô", replacement="o"),
-         entity = gsub(entity, pattern="ô", replacement="o"),
-         eez = gsub(eez, pattern="é", replacement="e"),
-         entity = gsub(entity, pattern="é", replacement="e"))
-
-
-cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_ids.txt"), header=F, col.names = c("cell_id", "lon", "lat"))
-cell_ids_area <- read.csv(file.path(dir_spatial_csvs, paste("cell_id_area_", cell_size,".csv", sep="")))
-cell_ids <- cell_ids %>% left_join(cell_ids_area) %>% left_join(eez_cell_ids) %>% left_join(eez_ids)
-
-cell_ids <- cell_ids %>% 
-  mutate(eez = ifelse(is.na(eez) & water_area>0, "High seas", eez),
-         entity = ifelse(is.na(entity) & water_area>0, "High seas", entity))
+cell_ids <- left_join(cell_ids, eez_ids, by ="eez_id")
+# 
+# eez_ids <- eez_ids %>% 
+#   mutate(eez = gsub(eez, pattern="ô", replacement="o"),
+#          entity = gsub(entity, pattern="ô", replacement="o"),
+#          eez = gsub(eez, pattern="é", replacement="e"),
+#          entity = gsub(entity, pattern="é", replacement="e"))
+# 
+# 
+# cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_ids.txt"), header=F, col.names = c("cell_id", "lon", "lat"))
+# cell_ids_area <- read.csv(file.path(dir_spatial_csvs, paste("cell_id_area_", cell_size,".csv", sep="")))
+# cell_ids <- cell_ids %>% left_join(cell_ids_area) %>% left_join(eez_cell_ids) %>% left_join(eez_ids)
+# 
+# cell_ids <- cell_ids %>% 
+#   mutate(eez = ifelse(is.na(eez) & water_area>0, "High seas", eez),
+#          entity = ifelse(is.na(entity) & water_area>0, "High seas", entity))
 
 files <- list.files(dir_output)[grepl(list.files(dir_output), pattern="_SAU_IUCN_threat_05.csv")]
 files <- file.path(dir_output, files)
@@ -199,49 +243,12 @@ num_destructive <- sum(trawl_hab$destructive, na.rm=TRUE)
 
 ```
 
-Of the `r prettyNum(trawl_unspec, big.mark=",")` marine species that have trawling ('trawls unspecificed') identified as a threat, only `r toString(num_trawl_hab)` have habitat modification also identified as a threat. When reviewing the threat description for these species, many of them are identified as two separate threats. `r toString(num_destructive)` of these have 'destructive fishing practices' identified as a threat. 
+Of the `r prettyNum(trawl_unspec, big.mark=",")` marine species that have trawling ('trawls unspecified') identified as a threat, only `r toString(num_trawl_hab)` have habitat modification also identified as a threat. When reviewing the threat description for these species, many of them are identified as two separate threats. Only `r toString(num_destructive)` of these have 'destructive fishing practices' identified as a threat. 
 
 ## Supplemental discussion
 It is important to caveat our study knowing that we cannot fully account for the current extent of humanity's use of the oceans and this study has focused on fisheries. Small-scale fisheries are critical to coastal livelihoods across the world and must not be compromised by overly broad conservation initiatives, but instead included when implementing actions to improve aspects of ocean health (e.g. [@Halpern2012]). 
 
 In addition, while we use catch and fisheries profits as a proxy for importance, these are not adjusted for their importance to the country (i.e., percentage of GDP from fisheries revenues or percentage of animal protein from locally caught fish), nor do they take into account differences in purchasing power parity where $1000 of fisheries profits is much more valuable in poorer countries than in industrialized countries. 
 
-## Supplemental Figures
-
-Figure \@ref(fig:iucn-categories)
-```{r iucn-categories, fig.cap="IUCN category for all marine species (A) and marine species included in this study (B)" }
-
-#devtools::install_github("timcashion/IUCNpalette") #Requires this palette
-library(IUCNpalette)
-iucn_species <- read.csv(file.path(dir_data, "iucn_species_list.csv"))
-all_species <- iucn_species %>% filter(result.taxonid %in% marine_species$iucn_sid) %>% left_join(risk_codes, by=c("result.category"="code"))
-all_species <- all_species  %>% mutate(code_current = fct_relevel(code_current, c("DD", "LC", "NT", "VU", "EN", "CR", "EX"))) 
-included_species <- all_species %>% filter(result.taxonid %in% species_threats$iucn_sid)
-all_species_plot <- ggplot(data=all_species, aes(x=code_current, fill=code_current)) +
-  geom_bar() + 
-  scale_fill_manual(values= IUCNpalette::iucn_palette(category="All", exclude="NE")) +
-  ylab("Number of species") + 
-  labs(fill="IUCN Category") + 
-  xlab("") + 
-  scale_y_continuous(expand=c(0,0)) + 
-  theme(legend.position = "none") + 
-  NULL 
-included_species_plot <- ggplot(data=included_species, aes(x=code_current, fill=code_current)) +
-  geom_bar() + 
-  scale_fill_manual(values= IUCNpalette::iucn_palette(category="All", exclude="NE")) +
-  ylab("") + 
-  xlab("") + 
-  labs(fill="IUCN Category") + 
-  scale_y_continuous(expand=c(0,0)) + 
-  theme(legend.position = "none") + 
-  NULL 
-species_plot_legend <- get_legend(all_species_plot + theme(legend.position = "right"))
-plot_grid(all_species_plot, included_species_plot, species_plot_legend, labels=c("A", "B", ""), align="h", nrow=1, rel_heights = 1, rel_widths = c(1,1,0.5))
-
-if(fig_output==TRUE){ #Erase existing manuscript figs and re-output
-  ggsave(file.path(dir_supplemental_figs, "IUCN_status_marine_versus_study.png"), dpi=300, width=6, height=4)
-}
-
-```
-
+While O'Hara et al. [-@OHara2019] highlighted areas of conservation need, we identify the areas that would also meet with more or less fisheries overlap and thus competition. In these areas of competition, we assume the placement of marine protected areas (MPAs) would be more contentious due to the reliance on these natural resources. We also highlight areas with a low trade-off between fisheries profits for the most conservation protection where conservation should be prioritized, and that represent potentially 'easy wins' for conservation. 
 
