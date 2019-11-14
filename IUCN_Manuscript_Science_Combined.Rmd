@@ -1,6 +1,6 @@
 ---
 title: "Low cost conservation: Fisheries gear threats to marine species"
-author: "Tim Cashion^1^, Travis C. Tai^1^, Vicky W.Y. Lam^2^, Daniel Pauly^3^, and U. Rashid Sumaila^4^"
+author: "Tim Cashion^1^, Travis C. Tai^1,2^, Vicky W.Y. Lam^1,2^, Daniel Pauly^3^, and U. Rashid Sumaila^1,4^"
 date: "`r date()`"
 output: 
   # bookdown::html_document2:
@@ -125,17 +125,17 @@ spat_data <- spat_list %>%
 
 ```
 
-Affiliations:
-^1^ Fisheries Economics Research Unit, Institute for the Oceans and Fisheries, University of British Columbia. 
-^2^ Changing Oceans Research Unit, Institute for the Oceans and Fisheries, University of British Columbia. 
-^3^ Sea Around Us, Institute for the Oceans and Fisheries, University of British Columbia. 
-^4^ School of Public Policy and Global Affairs, University of British Columbia. 
-\*t.cashion@oceans.ubc.ca 
+Affiliations:  
+^1^ Fisheries Economics Research Unit, Institute for the Oceans and Fisheries, University of British Columbia.   
+^2^ Changing Oceans Research Unit, Institute for the Oceans and Fisheries, University of British Columbia.   
+^3^ *Sea Around Us*, Institute for the Oceans and Fisheries, University of British Columbia.   
+^4^ School of Public Policy and Global Affairs, University of British Columbia.   
+\*t.cashion@oceans.ubc.ca   
 
 Sentence summary: Fishing gear specific threats to marine species demonstrates lower-cost trade-offs between fisheries and conservation goals. 
 
 ## Abstract  
-Understanding conflicts between objectives of fisheries and conservation is the key to finding win-win situations for marine biodiversity and fishers. Many marine species are threatened by harmful interactions with fisheries, but the threats they face are associated with the fishing gears used. Here, we undertake a novel analysis of marine species and their gear-specific threats to evaluate conservation-fisheries trade-offs to identify areas with high competing goals. Our analysis suggests that gillnet and longline fisheries pose the greatest risk to marine species yet deliver relatively low profits, emphasizing the inefficiencies of these gears. We find that the majority of the high seas has low fisheries benefits with over 25% of the high seas categorized as areas of ‘conservation prioritization’ over fisheries.
+Understanding conflicts between objectives of fisheries and conservation is the key to finding win-win situations for marine biodiversity and fishers. Many marine species are threatened by harmful interactions with fisheries, but the threats they face are associated with the fishing gears used. Here, we undertake a novel analysis of marine species and their gear-specific threats to evaluate conservation-fisheries trade-offs to identify areas with high competing goals. Our analysis suggests that gillnet and longline fisheries pose the greatest risk to marine species yet deliver relatively low profits, emphasizing the inefficiencies of these gears. We find that the majority of the high seas has low economic fisheries benefits with over 25% of the high seas categorized as areas of ‘conservation prioritization’ over fisheries.
 
 Keywords: fishing method, IUCN, fishing pressure, conservation
 
@@ -173,7 +173,7 @@ Here, we establish the first estimate of large-scale conservation trade-offs whe
 ## Results
 
 ### Fishing threats to IUCN species
-For the `r iucn_marine_num` marine species included on the IUCN Red List, fishing is identified by the IUCN as a threat to `r fishing_threat_num` of them (`r fishing_threat_perc`%) (Threat category 5.4: fishing and harvesting aquatic resources). This threat is from both large- and small-scale sectors, and from intentional and unintentional capture (Figure \@ref(fig:iucn-fig-combined)A). According to the identified threats, the small-scale sector is a threat to a greater number of species than intentional or unintentional capture by the large-scale sector. Interestingly, the impacts of fishing are identified to be low or unknown on most of the species, whereas medium or high fishing impacts are identified for only very few species. 
+For the `r iucn_marine_num` marine species included on the IUCN Red List, fishing is identified by the IUCN as a threat to `r fishing_threat_num` of them (`r fishing_threat_perc`%) (Threat category 5.4: fishing and harvesting aquatic resources). This threat is from both large- and small-scale sectors, and from intentional and unintentional capture (i.e., by-catch, Figure \@ref(fig:iucn-fig-combined-plot)A). According to the identified threats, the small-scale sector is a threat to a greater number of species than intentional or unintentional capture by the large-scale sector. Interestingly, the impacts of fishing are identified to be low or unknown on most of the species, whereas medium or high fishing impacts are identified for only very few species. 
 
 ```{r fishing-threat}
 
@@ -218,10 +218,10 @@ fishing_threats_plot <- fishing_threats %>%
 # }
 ```
 
-Within the Red List, trawls are identified as a gear threat for more than 2,500 marine species (Figure \@ref(fig:iucn-fig-combined)B). While many of the species caught by this gear type have an elevated risk of extinction (Near Threatened and higher), most are either Least Concern or Data Deficient within these gear types. The ‘gear types’ that appear in most species threat description are generally more vague gear terms (e.g., ‘trawls’ and ‘nets’) and could be attributable to several types of fishing gear (e.g., trawl nets, gillnets, seine nets all fall under ‘nets’). The more specific gear categories identified are used in the remaining parts of the analysis (Table S2). 
+Within the Red List, trawls are identified as a gear threat for more than 2,500 marine species (Figure \@ref(fig:iucn-fig-combined-plot)B). While many of the species caught by this gear type have an elevated risk of extinction (Near Threatened and higher), most are either Least Concern or Data Deficient within these gear types. The ‘gear types’ that appear in most species threat description are generally more vague gear terms (e.g., ‘trawls’ and ‘nets’) and could be attributable to several types of fishing gear (e.g., trawl nets, gillnets, seine nets all fall under ‘nets’). The more specific gear categories identified are used in the remaining parts of the analysis (Table S2). 
 
 
-```{r gear-threats, fig.cap="Fishing gear terms by number of species where that gear is mentioned in 'Threats' or 'Use and Trade' text"}
+```{r gear-threats}
 text_threats <- read.csv(file.path(dir_data, "narrative_threats_output_tidy.csv"))
 
 exclude <- "trawlers"
@@ -265,9 +265,9 @@ gear_terms_threats_plot <- text_threats %>%
 # }
 ```
 
-From the gear types we have previously identified (Figure \@ref(fig:iucn-fig-combined)C) we see again that bottom trawl fisheries are associated with the largest number of Red List species. However, we see these species are mainly in the Data Deficient, Least Concern, and Near Threatened categories while gillnet gears have the most number of species in the Threatened categories (Vulnerable, Endangered, and Critically Endangered).  
+From the gear types we have previously identified (Figure \@ref(fig:iucn-fig-combined-plot)C) we see again that bottom trawl fisheries are associated with the largest number of Red List species. However, we see these species are mainly in the Data Deficient, Least Concern, and Near Threatened categories while gillnet gears have the most number of species in the Threatened categories (Vulnerable, Endangered, and Critically Endangered).  
 
-```{r gear-threat-col-chart, fig.cap="Gear threats across current IUCN Red List status and gear types", fig.width=10, fig.height=5}
+```{r gear-threat-col-chart}
 
 text_threats <- read.csv(file.path(dir_data, "narrative_threats_output_tidy.csv")) 
 
@@ -312,25 +312,6 @@ weighted_gear_threats_plot2 <- weighted_gear_threats %>%
 #   ggsave(file.path(dir_manuscript_figs, "gear-threat-col-chart.png"), dpi=300, width=10, height=5)
 # }
 
-```
-
-```{r iucn-fig-combined, fig.cap= "IUCN fishing gear threats: species categorized by fishing gear threat (A); fishing gear threats by gear types listed (B); and identified gear types by threat status (C). Note: DD: Data Deficient; LC: Least Concern; NT: Near Threatened; VU: Vulnerable; EN: Endangered; CR: Critically Endangered.", fig.height=8, fig.width=12, dpi=400}
-
-#Gear threats across current IUCN Red List status and gear types
-
-cowplot::plot_grid(
-  cowplot::plot_grid(fishing_threats_plot,
-  gear_terms_threats_plot, nrow=1, labels=c("A", "B")),
-  weighted_gear_threats_plot2,
-  nrow=2, 
-  align = "v",
-  rel_widths = c(1, 2),
-  rel_heights = 1, 
-  labels=c("","C"))
-
-if(fig_output==TRUE){
-  ggsave(file.path(dir_manuscript_figs, "iucn_panel.png"), height = 8, width=12, dpi=300)
-}
 ```
 
 
@@ -418,15 +399,11 @@ colnames(summary_tab_mean) <- c("Gear type", "Profit ($/km^2^)", "Number of spec
 
 Globally, annual fisheries profits by bottom trawl fisheries are estimated to be at an average of \$`r toString(bt_profit)` real USD per km^2^ of area fished (Table \@ref(tab:gear-summary-table)). However, an average of `r toString(bt_n)` species are targeted by bottom trawls in each of the half degree by half degree grids cells with this gear, with an average biodiversity risk score of Near Threatened (`r toString(bt_risk)`). Taken together, the generally high value of their catches make them perform relatively well overall. In contrast, longline fisheries have low profits per area occupied (\$`r toString(ll_profit)`) as they fish over a large spatial area. While they operate in areas with a similar biodiversity risk score as bottom trawl fisheries (`r toString(ll_risk)`), they do so with much lower returns meaning they produce less fisheries profits for their relative conservations risk (weighted threat score) than bottom trawl fisheries. 
 
-```{r gear-summary-table}
-knitr::kable(summary_tab_mean, caption= "Mean values of measures of fisheries conservation concern and profit by gear type at a 0.5° by 0.5° scale.")
-```
-
-We divided the global ocean into half degree by half degree grid cells. If we consider each spatial cell an independently managed grid, we can examine the trade-offs required in each cell based on their fisheries profits and conservation value (Figure \@ref(fig:conceptual-figure-gears)). Although bottom trawl fisheries operate in many spatial cells of conservation concern (high 'weighted threat score' values), they also generate substantial profits from these fisheries. Gillnets, alternatively, have a large number of cells that are below the median value for fisheries profits and have high weighted threat scores. Pelagic trawls have low weighted threat scores overall and thus the reduction in their use may not lead to large conservation gains. However, pelagic trawls are shown to be non-profitable ($`r toString(pt_profit)`) and it means this gear type is inefficient. Hence, persistent use of this gear type may not be economically beneficial to human well-being. 
+We divided the global ocean into half degree by half degree grid cells. If we consider each spatial cell an independently managed grid, we can examine the trade-offs required in each cell based on their fisheries profits and conservation value (Figure \@ref(fig:conceptual-figure-gears-plot)). Although bottom trawl fisheries operate in many spatial cells of conservation concern (high 'weighted threat score' values), they also generate substantial profits from these fisheries. Gillnets, alternatively, have a large number of cells that are below the median value for fisheries profits and have high weighted threat scores. Pelagic trawls have low weighted threat scores overall and thus the reduction in their use may not lead to large conservation gains. However, pelagic trawls are shown to be non-profitable ($`r toString(pt_profit)`) and it means this gear type is inefficient. Hence, persistent use of this gear type may not be economically beneficial to human well-being. 
 
 The six major gear types included here (Table \@ref(tab:gear-summary-table)) together account for 92% of global fisheries catches (landings and discards) [@Cashion2018a]. Bottom trawls, gillnets, and longlines are used in large extent (i.e., have many more cells) where the weighted threat score is higher than the median, especially in contrast to pelagic trawls, purse seines and small-scale gears. Among these higher impact gears, the fisheries profit gained in each grid cell varies substantially. Interestingly, gillnet fisheries are operating in many areas of high conservation concern with fisheries profits below the median value (across gear types). This demonstrates that the social costs of this gear are higher than previously thought [@Chuenpagdee2003], and the social benefit may not be net positive given the relatively low profits achieved (mainly below the median). In contrast, bottom trawl fisheries while overlapping on the weighted threat score dimension with gillnet fisheries, achieve higher profits thus representing a conflict between conservation goals and fisheries goals. Small-scale gears and purse seine have mixed results with weighted threat scores not nearly as high as gillnet or bottom trawls, and a mix of high and low profit areas. Pelagic trawls are often used solely for relatively low-value species (from krill to Alaska pollock), but have very low weighted threat scores throughout their range of fisheries profits. 
 
-```{r conceptual-figure-gears, fig.cap="Fisheries profits (log scaled) and weighted score by cell (0.5° by 0.5° grid) for major gear types. Grey dashed lines indicate the median values  (excluding values of 0) across gear types for fisheries profits per km^2^ and weighted threat score."}
+```{r conceptual-figure-gears}
 
 sau_gear_types <- unique(allocated_gear_profit$super_code)
 iucn_gear_types <- unique(text_threats$super_code)
@@ -459,30 +436,14 @@ median_wts <- median(plot_data %>% filter(weighted_score!=0) %>% pull(weighted_s
 median_profitkm2 <- median(plot_data %>% filter(profit_km2!=0) %>% pull(profit_km2), na.rm=TRUE)
 
 line_colour <- "grey50"
-plot_data %>% 
-  ggplot(aes(x=weighted_score, y=profit_km2, color=super_code)) +
-  geom_point(alpha=0.2) + 
-  scale_y_log10() + 
-  ylab(expression(paste("Profit ($/", km^2, ")"))) +
-  xlab("Weighted threat score") +
-  labs(color="Gear type") + 
-  facet_wrap(~super_code) + 
-  geom_vline(xintercept = median_wts, lty="dashed", color=line_colour) + 
-  geom_hline(yintercept = median_profitkm2, lty="dashed", color=line_colour) +
-  theme(strip.background = element_blank()) + 
-  theme(legend.position = "none") + 
-  NULL
 
-if(fig_output==TRUE){
-  ggsave(file.path(dir_manuscript_figs, "conceptual-figure-gears.png"), dpi=300)
-}
 ```
 
 
 ### Protecting the high seas 
-Areas beyond national jurisdiction (i.e., the high seas) have recently received increased attention for their protection for biodiversity and fishery gains [@Sumaila2015a; @White2014], while leading to little losses in terms of food security [@Schiller2018; @Sumaila2007]. According to our framework, the high seas have cells in all four quadrants of our conceptual figure (Fig S2), but the majority are "areas of low concern" and "easy wins" (Figure \@ref(fig:high-seas)). This confirms earlier analysis of the lack of importance of high seas fisheries [@Sumaila2015a; @White2014; @Schiller2018; @Sumaila2007], and although the high seas is dominated by areas of low concern, it has vast amounts that fall into 'easy wins' with very few cells in fishery prioritization or fishery competition. Therefore, a relevant question may be reframed from which parts of the high seas should we protect, to which parts of the high seas should remain as fishing areas [@Walters1998] if any? 
+Areas beyond national jurisdiction (i.e., the high seas) have recently received increased attention for their protection for biodiversity and fishery gains [@Sumaila2015a; @White2014], while leading to little losses in terms of food security [@Schiller2018; @Sumaila2007]. According to our framework, the high seas have cells in all four quadrants of our conceptual figure (Fig S2), but the majority are "areas of low concern" and "easy wins" (Figure \@ref(fig:high-seas-plot)). This confirms earlier analyses of the lack of importance of high seas fisheries [@Sumaila2015a; @White2014; @Schiller2018; @Sumaila2007], and although the high seas is dominated by areas of low concern, it has vast amounts that fall into 'easy wins' with very few cells in fishery prioritization or fishery competition. Therefore, a relevant question may be reframed from which parts of the high seas should we protect, to which parts of the high seas should remain as fishing areas [@Walters1998] if any? 
 
-```{r high-seas, fig.cap="Scatterplot of cells within the High Seas (areas beyond national jurisdiction) according to their categories from our conceptual diagram. Each point is the values for a specific gear type in a 0.5° by 0.5° cell. Dashed lines indicated mean values of all cells (High Seas and EEZs).", fig.width=8}
+```{r high-seas}
 
 #Get cell ids to identify HS areas from EEZs
 cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_id_lon_lat_area.csv"))
@@ -608,11 +569,11 @@ hs_category_bar <- harmonized_threats_labeled %>%
   NULL
 
 
-cowplot::plot_grid(hs_distribution, hs_category_bar, rel_widths = c(1.15,1.0), align="h")
-#ggsave("./figs/HS Combined plot.png", dpi=300, width=8, height=4)
-if(fig_output==TRUE){
-  ggsave(file.path(dir_manuscript_figs, "high-seas.png"), dpi=300, width=8, height=4)
-}
+# cowplot::plot_grid(hs_distribution, hs_category_bar, rel_widths = c(1.15,1.0), align="h")
+# #ggsave("./figs/HS Combined plot.png", dpi=300, width=8, height=4)
+# if(fig_output==TRUE){
+#   ggsave(file.path(dir_manuscript_figs, "high-seas.png"), dpi=300, width=8, height=4)
+# }
 ```
 
 
@@ -628,10 +589,89 @@ Our study is static and focuses on data reflective of the present situation. We 
 Our study may underestimate the impact of some fishing gears based on the descriptions of threats and use for each IUCN species. The study is inherently limited to those species included in the IUCN Red List, as well as to those species that have enough information to be included in the analysis (see supplemental materials). For the species that have gear threat information, it is unlikely these threats are biased towards particular fishing methods as the threats generally highlight all known (fisheries) threats. However, there is known to be a systemic bias taxonomically and geographically for conservation research and species assessed by the Red List [@Donaldson2016]. One area where this is not fully accounted for is the impact of bottom trawls, dredges, and other bottom-impacting gear on seafloor habitat [@CommitteeonEcosystemEffectsofFishing2002], which is not fully captured in the IUCN assessments (supplemental materials). In addition, as Data Deficient species are given a risk score of 0, we likely underestimate the risk to these species. For example, a quarter of Chondrichthyes (sharks, rays, and chimaeras) species currently categorized as data deficient were predicted to be Threatened [@Dulvy2014].
 
 ## Conclusion
-Our results highlight areas of high conservation concern for particular fishing gears, and areas of high overlap with multiple fishing gear threats and multiple species of conservation concern. We also highlight areas with the potential for low-cost fishing closures leading to maximum protection of species negatively affected by these fishing gears. Interestingly, the study suggests that gillnet fisheries represent a greater overall threat than the often criticised bottom trawl fisheries due to the high fisheries profits derived from many bottom trawl catches. This analysis can help inform future conservation planning with areas of low-cost trade-offs in comparison to areas with much higher costs for equal conservation benefits. 
+Our results highlight areas of high conservation concern for particular fishing gears, and areas of high overlap between multiple fishing gear threats and multiple species of conservation concern. We also highlight areas with the potential for low-cost fishing closures leading to maximum protection of species negatively affected by these fishing gears. Interestingly, the study suggests that gillnet fisheries represent a greater overall threat than the often criticised bottom trawl fisheries due to the high fisheries profits derived from many bottom trawl catches. This analysis can help inform future conservation planning with areas of low-cost trade-offs in comparison to areas with much higher costs for equal conservation benefits. 
 
-## Acknowledgements
-TC acknowledges funding support of the Social Sciences and Humanities Research Council of Canada and the Four Year Fellowship from the University of British Columbia. DP acknowledges support from the *Sea Around Us*, which is funded by a number of philanthropic foundations. URS acknowlegdes funding support for the OceanCanada funded by the Social Sciences and Humanities Research Council of Canada, and additional funding from the ADM Capital Foundation.
+*Acknowledgments:*
+*Funding:* TC acknowledges funding support of the Social Sciences and Humanities Research Council of Canada and the Four Year Fellowship from the University of British Columbia. DP acknowledges support from the *Sea Around Us*, which is funded by a number of philanthropic foundations. TCT and URS acknowledge support from the OceanCanada Partnership, funded by the Social Sciences and Humanities Research Council of Canada. URS acknowledges additional funding from the ADM Capital Foundation.
+Author contributions: TC led the design and analysis and wrote the original version of the manuscript. T. Tai helped in the early analysis and editing the original manuscript. V. Lam contributed data and expertise on the cost of fishing database, and all authors helped analyse results and edited the final manuscript to its improved form.
+*Competing interests:* Authors declare no competing interests.
+*Data and materials availability:* Data obtained from the *Sea Around Us*, BirdLife International, and the IUCN Red List are publicly available. All code used for processing this data and producing the results of this manuscript are available at www.github.com/timcashion/iucnfishingthreats.
+*Supplementary Materials:*
+Materials and Methods
+Figures S1-S4
+Tables S1-S5
+References (XX-XX)
+
+## Figures
+
+
+```{r iucn-fig-combined-plot, fig.cap= "IUCN fishing gear threats: species categorized by fishing gear threat (A); fishing gear threats by gear types listed (B); and identified gear types by threat status (C). Note: DD: Data Deficient; LC: Least Concern; NT: Near Threatened; VU: Vulnerable; EN: Endangered; CR: Critically Endangered.", fig.height=8, fig.width=12, dpi=400}
+
+#Gear threats across current IUCN Red List status and gear types
+
+cowplot::plot_grid(
+  cowplot::plot_grid(fishing_threats_plot,
+  gear_terms_threats_plot, nrow=1, labels=c("A", "B")),
+  weighted_gear_threats_plot2,
+  nrow=2, 
+  align = "v",
+  rel_widths = c(1, 2),
+  rel_heights = 1, 
+  labels=c("","C"))
+
+if(fig_output==TRUE){
+  ggsave(file.path(dir_manuscript_figs, "Fig1_iucn_panel.png"), height = 8, width=12, dpi=300)
+}
+```
+
+
+```{r conceptual-figure-gears-plot, fig.cap="Fisheries profits (log scaled) and weighted score by cell (0.5° by 0.5° grid) for major gear types. Grey dashed lines indicate the median values  (excluding values of 0) across gear types for fisheries profits per km^2^ and weighted threat score."}
+
+plot_data %>% 
+  ggplot(aes(x=weighted_score, y=profit_km2, color=super_code)) +
+  geom_point(alpha=0.2) + 
+  scale_y_log10() + 
+  ylab(expression(paste("Profit ($/", km^2, ")"))) +
+  xlab("Weighted threat score") +
+  labs(color="Gear type") + 
+  facet_wrap(~super_code) + 
+  geom_vline(xintercept = median_wts, lty="dashed", color=line_colour) + 
+  geom_hline(yintercept = median_profitkm2, lty="dashed", color=line_colour) +
+  theme(strip.background = element_blank()) + 
+  theme(legend.position = "none") + 
+  NULL
+
+if(fig_output==TRUE){
+  ggsave(file.path(dir_manuscript_figs, "Fig2_conceptual-figure-gears.png"), dpi=300)
+}
+```
+
+
+```{r high-seas-plot, fig.cap="Scatterplot of cells within the High Seas (areas beyond national jurisdiction) according to their categories from our conceptual diagram. Each point is the values for a specific gear type in a 0.5° by 0.5° cell. Dashed lines indicated mean values of all cells (High Seas and EEZs).", fig.width=8}
+cowplot::plot_grid(hs_distribution, hs_category_bar, rel_widths = c(1.15,1.0), align="h")
+#ggsave("./figs/HS Combined plot.png", dpi=300, width=8, height=4)
+if(fig_output==TRUE){
+  ggsave(file.path(dir_manuscript_figs, "Fig3_high-seas.png"), dpi=300, width=8, height=4)
+}
+```
+
+
+## Tables
+
+
+```{r gear-summary-table}
+knitr::kable(summary_tab_mean, caption= "Mean values of measures of fisheries conservation concern and profit by gear type at a 0.5° by 0.5° scale.")
+```
+
+
+# Supplementary Materials (CUT TO SEPARATE FILE)
+
+*This PDF file includes:*  
+
+Materials and Methods  
+Supplementary Text  
+Figs. S1 to S4  
+Tables S1 to S5  
 
 
 ```{r, include=FALSE}
@@ -666,11 +706,11 @@ gear_threat_num <- prettyNum(gear_threat_num, big.mark = ",")
 ```
 
 ### IUCN data 
-The International Union for Conservation of Nature (IUCN) maintains the IUCN Red List of Threatened Species (hereafter, 'Red List') that documents the population status and threats of species globally. Species (and sub-populations of species) that are assessed by the IUCN are categorised into one of the following in order of increasing conservation threat: Least Concern, Near Threatened, Vulnerable, Endangered, Critically Endangered, and Extinct. A final category exists of 'Data Deficient' that indicates there is not enough information to properly assess the population status of a species. Together, Vulnerable, Endangered, and Critically Endangered are often grouped together as 'Threatened'. In addition to the categorisation of the threat status, the IUCN provides species range maps, detailed description of threats, and other important information on the species included in the Red List.
+The International Union for Conservation of Nature (IUCN) maintains the IUCN Red List of Threatened Species (hereafter, ‘Red List’) that documents the population status and threats of species globally. Species (and sub-populations of species) that are assessed by the IUCN are categorised into one of the following in order of increasing conservation threat: Least Concern, Near Threatened, Vulnerable, Endangered, Critically Endangered, and Extinct. A final category exists of ‘Data Deficient’ that indicates there is not enough information to properly assess the population status of a species. Together, Vulnerable, Endangered, and Critically Endangered are often grouped together as ‘Threatened’. In addition to the categorisation of the threat status, the IUCN provides species range maps, detailed description of threats, and other important information on the species included in the Red List.
 
 Red List Categories, spatial habitat maps, identified threats by species, and a description of threats were gathered from the IUCN API version 2019-2 [@IUCN2019]. The known threats to each marine species were extracted from the IUCN API focusing on threats identified in Category 5: Biological Resource Use. The Red List identifies four different types of fisheries impacts from either intentional or unintentional capture/harvest from the large- or small-scale fisheries. These threats are categorised by the IUCN as unknown, past, no, low, medium, or high impact. In addition, the text from the 'Detailed Threats' and 'Use and Trade' sections for each marine species was extracted from the IUCN API. After extracting the description of the species threats and use and trade information, we tokenized (i.e., separated the text into one word strings) the text extracting standard stop words and searched for single words and bigrams of fishing gears (e.g., 'bottom trawl' or 'longline', see Table S1). Bigrams were used as they can include more specific gear types than single words alone (e.g., 'bottom trawl' versus 'trawl' and 'purse seine' versus 'seine'). The label for different fishing gears analysed are included in Table \@ref(tab:gear-search-table). These were devised to match the IUCN narrative text most closely to relevant *Sea Around Us* gears. 
 
-We accessed spatial species distribution shape files from the Red List for comprehensively assessed groups that include marine organisms [@IUCN2019]. We supplemented this with Bird Life International species distribution files for birds that occur in marine areas [@BirdLifeInternational2018]. Marine molluscs have not been comprehensively assessed (i.e., less than 80% of the species in this group have not been assessed) by the IUCN except for Cone Snails (*Conus* spp.), and this is a gap in our data coverage. We converted the species distribution maps to raster format at various spatial scales to correspond to existing datasets in fisheries research, but used a 0.5° by 0.5° for our analysis as it matches the *Sea Around Us* fisheries catch database. We rasterised the species distribution files following the same process of O'Hara [-@OHara2019].
+We accessed spatial species distribution shape files from the Red List for comprehensively assessed groups that include marine organisms [@IUCN2019]. We supplemented this with Bird Life International species distribution files for birds that occur in marine areas [@BirdLifeInternational2018]. Marine molluscs have not been comprehensively assessed (i.e., less than 80% of the species in this group have not been assessed) by the IUCN except for Cone Snails (*Conus* spp.), and this is a gap in our data coverage. We converted the species distribution maps to raster format at various spatial scales to correspond to existing datasets in fisheries research, but used a 0.5° latitude by 0.5° longitude for our analysis as it matches the *Sea Around Us* fisheries catch database. We rasterised the species distribution files following the same process of O'Hara [-@OHara2019].
 
 We used the same prioritisation of species IUCN Categories based on regional assessments where possible as in O'Hara [-@OHara2019]. Here, regional assessments were matched to associated (i.e., overlapping) marine ecoregions [@Spalding2007] that were then associated with their corresponding cells of the spatial grid used. Regional assessments were used in preference of global assessments where possible. 
 
@@ -700,14 +740,14 @@ gear_threats_spatial <- prettyNum(gear_threats_spatial, big.mark=",")
 
 ```
 
-The Red List contains detailed information on the species system and habitat types. The system assigns species to terrestrial, freshwater, and marine ecosystems (with species able to occur in multiple ecosystems) and this was used to restrict our analysis to marine species. In addition, we restricted those within the marine ecosystem to specific habitats to eliminate species whose are not dependent on the marine environment nor likely to be affected by fisheries, following O'Hara et al. [-@OHara2019]. After restricting our analysis to marine dependent species that are threatened by fishing gears and have species range maps available from the IUCN or BirdLife International, our analysis focused on `r gear_threats_spatial` number of species (Fig S3).
+The Red List contains detailed information on the species system and habitat types. The system assigns species to terrestrial, freshwater, and marine ecosystems (with species able to occur in multiple ecosystems) and this was used to restrict our analysis to marine species. In addition, we restricted those within the marine ecosystem to specific habitats to eliminate species that are not dependent on the marine environment nor likely to be affected by fisheries, following O'Hara et al. [-@OHara2019]. After restricting our analysis to marine dependent species that are threatened by fishing gears and have species range maps available from the IUCN or BirdLife International, our analysis focused on `r gear_threats_spatial` number of species (Fig S3).
 
 ### Fisheries data  
-The *Sea Around Us* has reconstructed marine fisheries catches for all marine countries and territories from 1950 to present. The process of reconstruction supplements and corrects reported fisheries catches with estimates of known to be excluded fishing sectors (e.g., artisanal and recreational fishing) and practices (e.g., discarding) [@Zeller2016]. These catches are spatially allocated according to a rule-based assignment and based on known information on where the fishery was operating (within domestic EEZs, foreign EEZs, the high seas, etc.). The spatial scale used is 0.5° by 0.5°.
+The *Sea Around Us* has reconstructed marine fisheries catches for all marine countries and territories from 1950 to present. The process of reconstruction supplements and corrects reported fisheries catches with estimates of known to be overwhelmingly excluded fishing sectors (e.g., artisanal and recreational fishing) and practices (e.g., discarding) [@Zeller2016]. These catches are spatially allocated according to a rule-based assignment and based on known information on where the fishery was operating (within domestic EEZs, foreign EEZs, the high seas, etc.). The spatial scale used is 0.5° latitude by 0.5° longitude.
 
 The reconstructed catches were then assigned to their respective fishing gear types for industrial and small-scale sectors. This process relied on similar methods as the catch reconstructions relying on official catch statistics by gear type, as well as fisheries reports, catch surveys, newspaper articles, and other grey literature. The process by which each countries fishing gear was assigned is documented in Cashion [-@Cashion2018a]. The result is a catch database with gear information included for all catches. 
 
-We used the *Sea Around Us* database (v.47) for catches by gear type [@Pauly2015; @Cashion2018a] and were accessed from the *Sea Around Us* database by the first author. This database includes spatially allocated reconstructed fisheries catches by gear type and taxon for all fishing countries and territories of the world. The spatial scale of this dataset is 0.5° by 0.5° and has been used in many global fisheries studies [@Gremillet2018; @Schiller2018]. 
+We used the *Sea Around Us* database (v.47) for catches by gear type [@Pauly2015; @Cashion2018a] and were accessed from the *Sea Around Us* database by the first author. This database includes spatially allocated reconstructed fisheries catches by gear type and taxon for all fishing countries and territories of the world. The spatial scale of this dataset is 0.5° latitude by 0.5° longitude and has been used in many global fisheries studies [@Gremillet2018; @Schiller2018]. 
 
 In addition, we use the corollary Fisheries Economics Research Unit (FERU) ex-vessel price database that includes reported and estimated first-sale prices for all taxa for each fishing country by year [@Tai2017] to incorporate the potential lost revenues for fisheries closures in areas of high biological importance. Revenue is calculated as the ex-vessel price (real 2010 USD per metric tonne) of a specific taxon caught by a country in a given year multiplied by its landings amount in metric tonnes. 
 
@@ -723,7 +763,7 @@ $ln(Price_{xyzt}) = \beta_0 + \beta_1Gear_y + \beta_2ln(L_{xyzt}) + \beta_3Speci
 
 We used the estimated gear-type coefficients as gear specific multipliers $\beta_1_{y}$ that will modify the ex-vessel price of fish caught (Table \@ref(tab:gear-multiplier-table)).
 
-Finally, we used an updated version of FERU's cost of fishing database [@Lam2011] to account for the cost of fishing that varies by country and gear type. Cost of fishing is broken down into its component parts in the database (e.g., fuel, labour, capital, maintenance, etc.), and here we use the total cost by gear type and country per tonne of fish landed ($C_{yz}$). Where the cost of fishing was not available for a particular gear and country, we used the regional average for that gear type, and where this was not possible we used the average cost across gear types for the region. We used the FAO socioeconomic regions for this stage of the analysis. We then derive the profit by gear type and country for each cell $i$ , based on the catch by gear type multiplied by the ex-vessel price multiplied by the gear type multiplier ($M_{y}$) minus the cost of fishing for that amount of landings. Therefore, profit (*P*) in cell *i* is equal to: 
+Finally, we used an updated version of FERU's cost of fishing database [@Lam2011] to account for the cost of fishing that varies by country and gear type. Cost of fishing is broken down into its component parts in the database (e.g., fuel, labour, capital, maintenance, etc.), and here we use the total cost by gear type and country per tonne of fish landed ($C_{yz}$). Where the cost of fishing was not available for a particular gear and country, we used the regional average for that gear type, and where this was not possible we used the average cost across gear types for the region. We used the FAO socioeconomic regions for this stage of the analysis [@FAO2017]. We then derive the profit by gear type and country for each cell $i$ , based on the catch by gear type multiplied by the ex-vessel price multiplied by the gear type multiplier ($M_{y}$) minus the cost of fishing for that amount of landings. Therefore, profit (*P*) in cell *i* is equal to: 
 
 $P_{i} = \sum_{x=1}^{x} (L_{xyi} * P_{x} * M_{y}) - (L_{xyi} * C_{y})$ (2)  
 
@@ -735,7 +775,7 @@ Our analysis focuses on the trade-offs among different fisheries with specific g
 
 First, we analysed the major fishing gear threats based on their appearance in the narrative text of the Red List species profiles. We associated these descriptors to their gear types and examined the number of species by Red List Category and weighted threat status by gear type. We used a linearised weighted scoring method to weight the presence of a species by its IUCN Category (e.g., 'Least Concern' = 0, 'Endangered'=0.6, etc., Table S2) [@OHara2019]. Older and outdated categories were updated to their current descriptors such as 'Lower Risk/near threatened' to 'Near Threatened'. 
 
-We aim to map areas of high fisheries interest and high conservation concern. The areas with high overlap between conservation concern but low fisheries catches and effort are areas that could be fully protected from these threats for the long term (termed here, 'easy wins'). However, the areas with high overlap of fisheries interest and high conservation concern are where the impacts on species may be greatest both in terms of fisheries threats and the potential benefits for conservation from fisheries closures. 
+We mapped areas of high fisheries interest and high conservation concern. The areas with high overlap between conservation concern but low fisheries catches and effort are areas that could be fully protected from these threats for the long term (termed here, 'easy wins'). However, the areas with high overlap of fisheries interest and high conservation concern are where the impacts on species may be greatest both in terms of fisheries threats and the potential benefits for conservation from fisheries closures. 
 
 We use three main metrics frequently in our analysis. First, we use the biodiversity risk score developed by O'Hara et al. [-@OHara2019]. This indicator is a measure of the average conservation threat status of an area of the marine environment (Equation 1). It is expressed as:
 
@@ -743,23 +783,23 @@ $Biodiversity Risk Score_{cell} =  \frac{1}{N_{cell}}\sum_{i=1}^{N_{cell}}s_{i}$
 
 Where $N$ is number of assessed species in the $cell$ , $s_{i}$ is the conservation status ($s$) of species ($i$). All biodiversity risk scores are thus values of 0-1 that roughly correspond to the linear IUCN Category scale described above (Table \@ref(tab:risk-code-lookup)). 
 
-Second, we adapt this metric so that it isn't normalised to the mean threat in the cell but representative of scale (number of species) and severity (IUCN Category) of threat. This metric is named the weighted threat score defined as the sum of species present multiplied by their threat category numeric score, but is not divided by the number of species in a given cell. We do not normalise by this to highlight areas of conservation concern based on the number of species in that cell in addition to their threat status. 
+Second, we adapt this metric so that it is not normalised to the mean threat in the cell but representative of scale (number of species) and severity (IUCN Category) of threat. This metric is named the weighted threat score defined as the sum of species present multiplied by their threat category numeric score, but is not divided by the number of species in a given cell. We do not normalise this to highlight areas of conservation concern based on the number of species in that cell in addition to their threat status. 
 
 $WeightedThreatScore_{i,g} = \sum_{i=1}^{N_{cell}}s_{i}$ (4)   
 
 This analysis was conducted in R [@RCoreTeam2017], and used the tidyverse [@Wickham2016], rMarkdown [@Baumer2015], tidytext [@Fay2018]; gridExtra [@Auguie2017]; sf [@Pebesma2019], rgdal [@Pebesma2012], cowplot [@Huber2017a], and wesanderson [@Ram2018] packages. All code and outputs are available at www.github.com/timcashion/iucnfishingthreats.
 
 
-## Supplemental Results
+## Supplemental Text
 
 As our study was restricted to Red List marine species with spatial information, we attempted to ensure this was representative of broader patterns in Red List species. Generally, he breakdown between IUCN categories appears to be quite similar between all marine species and those included in this study (Figure \@ref(fig:iucn-categories)). 
 
 
 ```{r, include=FALSE}
 fig_output <- TRUE
-if(fig_output==TRUE){ #Erase existing manuscript figs and re-output
-  unlink(paste("./figs/supplemental_figs/", list.files("./figs/supplemental_figs"), sep=""))
-}
+# if(fig_output==TRUE){ #Erase existing manuscript figs and re-output
+#   #unlink(paste("./figs/supplemental_figs/", list.files("./figs/supplemental_figs"), sep=""))
+# }
 
 ```
 
@@ -787,42 +827,6 @@ allocated_gear_profit <- allocated_gear_profit %>%
 
 ```
 
-
-```{r iucn-categories, fig.cap="IUCN category for all marine species (A) and marine species included in this study (B)" , fig.width=8}
-
-#devtools::install_github("timcashion/IUCNpalette") #Requires this palette
-library(IUCNpalette)
-iucn_species <- read.csv(file.path(dir_data, "iucn_species_list.csv"))
-all_species <- iucn_species %>% filter(result.taxonid %in% marine_species$iucn_sid) %>% left_join(risk_codes, by=c("result.category"="code"))
-all_species <- all_species  %>% mutate(code_current = fct_relevel(code_current, c("DD", "LC", "NT", "VU", "EN", "CR", "EX"))) 
-all_species <- all_species  %>% mutate(cat_current = fct_relevel(cat_current, c("Data Deficient", "Least Concern", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered", "Extinct"))) 
-included_species <- all_species %>% filter(result.taxonid %in% species_threats$iucn_sid)
-all_species_plot <- ggplot(data=all_species, aes(x=cat_current, fill=cat_current)) +
-  geom_bar() + 
-  scale_fill_manual(values= IUCNpalette::iucn_palette(category="All", exclude="NE")) +
-  ylab("Number of species") + 
-  labs(fill="IUCN Category") + 
-  xlab("") + 
-  scale_y_continuous(expand=c(0,0)) + 
-  theme(legend.position = "none", axis.text.x= element_blank()) + 
-  NULL 
-included_species_plot <- ggplot(data=included_species, aes(x=cat_current, fill=cat_current)) +
-  geom_bar() + 
-  scale_fill_manual(values= IUCNpalette::iucn_palette(category="All", exclude="NE")) +
-  ylab("") + 
-  xlab("") + 
-  labs(fill="IUCN Category") + 
-  scale_y_continuous(expand=c(0,0)) + 
-  theme(legend.position = "none", axis.text.x= element_blank()) + 
-  NULL 
-species_plot_legend <- get_legend(all_species_plot + theme(legend.position = "right"))
-plot_grid(all_species_plot, included_species_plot, species_plot_legend, labels=c("A", "B", ""), align="h", nrow=1, rel_heights = 1, rel_widths = c(1,1,1))
-
-if(fig_output==TRUE){ #Erase existing manuscript figs and re-output
-  ggsave(file.path(dir_supplemental_figs, "IUCN_status_marine_versus_study.png"), dpi=300, width=6, height=4)
-}
-
-```
 
 
 #### Protecting coastal waters
@@ -852,7 +856,7 @@ While O'Hara et al. [-@OHara2019] highlighted areas of conservation need, we ide
 
 ## Supplemental Figures
 
-Figure S1
+Fig. S1.
 ```{r progressive-refinement}
 progressive_refinement <- grViz("digraph flowchart {
       # node definitions with substituted label text()
@@ -899,21 +903,14 @@ progressive_refinement <- grViz("digraph flowchart {
       [7]: 'Has spatial data (n= 2,226)'
       ")
 progressive_refinement
-
-      # node [color=LightSteelBlue]
-      # tab8 [label = '@@8']
-      # 
-      # node [color=grey]
-      # tab9 [label = '@@9']
-# tab7 -> tab8;
-#       tab7 -> tab9;
-      # [4]: 'Fishing is not a threat (n= 10,311)'
-      # [5]: 'Fishing is a threat (n= 4,560)'
+if(fig_output==TRUE){
+  ggsave(file.path(dir_supplemental_figs, "FigS1_progressive_refinement.png"))
+}
 
 ```
 
 
-Figure S2
+Fig. S2.
 ```{r conceptual-figure, fig.cap="Theoretical basis for competition between fisheries and conservation", dpi=150, fig.width=3.5, fig.height=3.5}
 
 #mod size:
@@ -937,7 +934,7 @@ conceptual_figure <- ggplot(data=df, aes(x=x,y=y, group=group)) +
   annotate("text", x = -4, y = -5, label = "Areas of low concern", size=3, color="grey40") + 
   annotate("text", x = -4, y = 5, label = "Fishery prioritisation", size=3, color="grey40") + 
   annotate("text", x = 5, y = 5, label = "Competition", size=3, color="grey40") + 
-  annotate("text", x = 5, y = -5, label = "Conservation prioritisation", size=3, color="grey40") + 
+  annotate("text", x = 5, y = -5, label = "Easy wins", size=3, color="grey40") + 
   annotate("text", x = -4, y = 9, label = "Low", size=3, color="grey40") + 
   annotate("text", x = 4, y = 9, label = "High", size=3, color="grey40") + 
   annotate("text", x = -9, y = 4, label = "High", size=3, color="grey40") + 
@@ -946,104 +943,51 @@ conceptual_figure <- ggplot(data=df, aes(x=x,y=y, group=group)) +
   geom_hline(yintercept= 8, alpha=0.5) + 
   NULL
 conceptual_figure
-#ggsave("./figs/conceptual_figure4.png")
+if(fig_output==TRUE){
+  ggsave(file.path(dir_supplemental_figs, "FigS2_conceptual_figure.png"))
+}
+
 
 ```
 
 
-![Figure 3. Conceptual methods figure.](./figs/methods_figure/methods_figure1_alt.png)
+![Fig. S3. Conceptual methods figure.](./figs/methods_figure/methods_figure1_alt.png)
 
-Figure S4
-```{r eez-protection-gears, fig.cap="Fisheries profits and weighted score by cell (0.5 by 0.5 grid) for three countries exclusive economic zones. Grey dashed lines indicate the median values  (excluding values of 0) across gear types for fisheries profits per km^2^. Note: X- and Y-axes have different scales in each EEZ."}
+Fig. S4.
+```{r iucn-categories, fig.cap="IUCN category for all marine species (A) and marine species included in this study (B)" , fig.width=8}
 
-#Get cell ids to identify HS areas from EEZs
-cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_id_lon_lat_area.csv"))
-cell_ids_eezs <- read.csv(file.path(dir_spatial_csvs, "cell_id_eez_fao_area.csv"))
-cell_ids_eezs <- cell_ids_eezs %>% select(-water_area) %>% rename(eez_id=area_id)
-cell_ids <- left_join(cell_ids, cell_ids_eezs, by="cell_id")
+#devtools::install_github("timcashion/IUCNpalette") #Requires this palette
+library(IUCNpalette)
+iucn_species <- read.csv(file.path(dir_data, "iucn_species_list.csv"))
+all_species <- iucn_species %>% filter(result.taxonid %in% marine_species$iucn_sid) %>% left_join(risk_codes, by=c("result.category"="code"))
+all_species <- all_species  %>% mutate(code_current = fct_relevel(code_current, c("DD", "LC", "NT", "VU", "EN", "CR", "EX"))) 
+all_species <- all_species  %>% mutate(cat_current = fct_relevel(cat_current, c("Data Deficient", "Least Concern", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered", "Extinct"))) 
+included_species <- all_species %>% filter(result.taxonid %in% species_threats$iucn_sid)
+all_species_plot <- ggplot(data=all_species, aes(x=cat_current, fill=cat_current)) +
+  geom_bar() + 
+  scale_fill_manual(values= IUCNpalette::iucn_palette(category="All", exclude="NE")) +
+  ylab("Number of species") + 
+  labs(fill="IUCN Category") + 
+  xlab("") + 
+  scale_y_continuous(expand=c(0,0)) + 
+  theme(legend.position = "none", axis.text.x= element_blank()) + 
+  NULL 
+included_species_plot <- ggplot(data=included_species, aes(x=cat_current, fill=cat_current)) +
+  geom_bar() + 
+  scale_fill_manual(values= IUCNpalette::iucn_palette(category="All", exclude="NE")) +
+  ylab("") + 
+  xlab("") + 
+  labs(fill="IUCN Category") + 
+  scale_y_continuous(expand=c(0,0)) + 
+  theme(legend.position = "none", axis.text.x= element_blank()) + 
+  NULL 
+species_plot_legend <- get_legend(all_species_plot + theme(legend.position = "right"))
+plot_grid(all_species_plot, included_species_plot, species_plot_legend, labels=c("A", "B", ""), align="h", nrow=1, rel_heights = 1, rel_widths = c(1,1,1))
 
-# cell_size <- "05"
-# eez_cell_ids <- read_csv(file.path(dir_spatial_csvs, paste("eez_cell_ids_", cell_size, ".csv", sep="")))
-eez_ids <- read.csv(file.path(dir_spatial_csvs, "eez_ids.csv")) %>%
-  rename(eez_id = EEZID, eez = Name, entity=Entity) %>%
-  dplyr::select(eez_id, eez, entity)
-cell_ids <- left_join(cell_ids, eez_ids, by ="eez_id")
-# 
-# eez_ids <- eez_ids %>% 
-#   mutate(eez = gsub(eez, pattern="ô", replacement="o"),
-#          entity = gsub(entity, pattern="ô", replacement="o"),
-#          eez = gsub(eez, pattern="é", replacement="e"),
-#          entity = gsub(entity, pattern="é", replacement="e"))
-# 
-# 
-# cell_ids <- read.csv(file.path(dir_spatial_csvs, "cell_ids.txt"), header=F, col.names = c("cell_id", "lon", "lat"))
-# cell_ids_area <- read.csv(file.path(dir_spatial_csvs, paste("cell_id_area_", cell_size,".csv", sep="")))
-# cell_ids <- cell_ids %>% left_join(cell_ids_area) %>% left_join(eez_cell_ids) %>% left_join(eez_ids)
-# 
-# cell_ids <- cell_ids %>% 
-#   mutate(eez = ifelse(is.na(eez) & water_area>0, "High seas", eez),
-#          entity = ifelse(is.na(entity) & water_area>0, "High seas", entity))
-
-files <- list.files(dir_output)[grepl(list.files(dir_output), pattern="_SAU_IUCN_threat_05.csv")]
-files <- file.path(dir_output, files)
-harmonized_list <- lapply(files, data.table::fread)
-files = gsub(files, pattern="_.*", replacement="")
-files = gsub(files, pattern=".*/", replacement="")
-for (i in 1:length(harmonized_list)){
-  harmonized_list[[i]]$super_code <- files[i]
+if(fig_output==TRUE){ 
+  ggsave(file.path(dir_supplemental_figs, "FigS4_IUCN_status_marine_versus_study.png"), dpi=300, width=6, height=4)
 }
-harmonized_threats <- bind_rows(harmonized_list)
-harmonized_threats <- harmonized_threats %>% left_join(cell_ids)
 
-harmonized_threats <- harmonized_threats %>% 
-  mutate(profit_km2 = profit/water_area)
-
-# eez_threats <- eez_threats %>% 
-#   gather(key="variable", value="value", -eez)
-
-mean_profit_global <- mean(allocated_gear_profit %>% filter(profit_km2!=0) %>% pull(profit_km2))
-mean_wts <- mean(harmonized_threats %>% filter(weighted_score>0) %>% pull(weighted_score))
-    
-harmonized_threats$category <- NA
-harmonized_threats <- harmonized_threats %>% 
-  mutate(category = if_else(profit_km2 > mean_profit_global, 
-                            if_else(weighted_score > mean_wts, "Fishery competition", "Fishery prioritization"), 
-                            if_else(weighted_score > mean_wts, "Easy wins", "Area of low concern")))
-
-harmonized_threats$category <- fct_relevel(as.factor(harmonized_threats$category), c("Fishery competition", "Fishery prioritization",  "Area of low concern", "Easy wins"))
-
-
-# eezs_of_interest <- c("High seas", "Indonesia")
-# eez_threats <- harmonized_threats %>% 
-#   filter(eez %in% eezs_of_interest)
-
-entities_of_interest <- c("Australia", "China", "Indonesia")
-exclude_gears <- c("other", "pelagic trawl", "drifting longlines")
-eez_threats <- harmonized_threats %>% 
-  filter(entity %in% entities_of_interest) %>% 
-  filter(!super_code %in% exclude_gears) %>% 
-  mutate(super_code = str_to_sentence(super_code))
-
-text_color <- "grey10"
-text_size <- 4
-eez_gear <- ggplot(data=eez_threats, aes(x=weighted_score, y=profit_km2, color=super_code)) +
-  geom_point(alpha=0.7) +
-  xlab("Weighted threat score") +
-  geom_vline(xintercept = mean_wts, color="grey50", lty="dashed") + 
-  geom_hline(yintercept = mean_profit_global, color="grey50", lty="dashed") + 
-  #scale_color_manual(values=c(zissou5[5], zissou5[4], "grey50", zissou5[1])) +
-  labs(color="Gear type") + 
-  ylab(expression(paste("Profit per ", km^2))) + 
-  #scale_color_manual(values = wes_palette("Darjeeling2")) +
-  theme(strip.background = element_blank()) + 
-  facet_wrap(~entity, scales="free", nrow=1) + 
-  NULL
-eez_gear
-if(fig_output==TRUE){
-  ggsave(plot= eez_gear, 
-         file.path(dir_manuscript_figs, "eez-protection-gear.png"), 
-         dpi=300, width=8, height=4)
-}
 ```
 
 
@@ -1053,14 +997,13 @@ Table S1.
 ```{r risk-code-lookup}
 risk_code_lookup <- read_csv("./data/risk_code_lookup.csv")
 colnames(risk_code_lookup) <- c("Former code", "Category", "Current Code", "Category Score")
-kable(risk_code_lookup, caption="Weighting of IUCN Categories")
+kable(risk_code_lookup, caption="Weighting of IUCN Categories based on [@OHara2019]")
 ```
 
 Table S2. 
 ```{r gear-search-table}
 gear_search_table <- read_csv("./output/gear_search_terms_table.csv")
-gear_search_table[] <- lapply(gear_search_table, function(x) gsub(x, pattern="|", replacment="; "))
-
+gear_search_table[] <- lapply(gear_search_table, function(x) gsub(x, pattern="\\|", replacement="; "))
 kable(gear_search_table, caption="Search terms used for identifying gear types in IUCN narrative text.")
 ```
 
