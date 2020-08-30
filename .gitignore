@@ -1,10 +1,7 @@
 .Rproj
 .user
-
 .Rhistory
-
 .RData
-
 .Ruserdata
 .spatial
 .Rproj.user
@@ -14,8 +11,11 @@ figs/
 images/
 iucn_classifier/
 important_refs/
+R/NOT USED/
 drafts/
 output/
 *.docx
+*.gdoc
 IUCN_token.txt
 IUCN_GFW_Appendix.rmd
+ScientificReportsSubmission/

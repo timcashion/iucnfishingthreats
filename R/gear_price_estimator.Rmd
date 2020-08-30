@@ -110,7 +110,7 @@ uk <- uk %>% left_join(uk_gear_table) %>% dplyr::select(Year, Scientific_name, s
 
 ```{r modeling}
 
-model_data <- bind_rows(nmfs, uk)
+model_data <- bind_rows(nmfs)
 #Set reference case:
 model_data <- model_data %>% 
   mutate(super_code = fct_relevel(super_code, "bottom trawl", after=0)) %>% 
@@ -118,6 +118,7 @@ model_data <- model_data %>%
 
 mod <- lfe::felm(log(Price) ~ super_code + log(Tonnes) |Scientific_name + Year + Country,
                  data=model_data, exactDOF=TRUE)
+?lme4::lmer()
 
 plot(model_data$Year, mod$residuals)
 
